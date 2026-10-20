@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronDown, CircleHelp, Copy, Crosshair, ExternalLink, GraduationCap, List, Maximize, Minus, Moon, Network, Plus, Search, Sun, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronDown, CircleHelp, Copy, Crosshair, ExternalLink, GraduationCap, List, Maximize, Minus, Moon, Network, Plus, Search, Sun, Type, X } from 'lucide-react';
 import UniverseGraph, { type GraphHandle } from './components/UniverseGraph';
 import subjectsData from './data/subjects.json';
 import lessonsData from './data/lessons.json';
 import type { Category, Lesson, Subject } from './types';
+import { contrastingInk } from './lib/colors';
 
 const subjects = subjectsData as Subject[];
 const lessons = lessonsData as Lesson[];
@@ -30,6 +31,9 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [showMapText, setShowMapText] = useState(() => {
+    try { return localStorage.getItem('universo-map-text') !== 'hidden'; } catch { return true; }
+  });
   const [modal, setModal] = useState<'help' | 'add' | null>(null);
   const [indexOpen, setIndexOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -41,6 +45,9 @@ export default function App() {
     try { localStorage.setItem('universo-theme', theme); } catch { /* Storage is optional. */ }
   }, [theme]);
   useEffect(() => { if (modal) dialog.current?.showModal(); else dialog.current?.close(); }, [modal]);
+  useEffect(() => {
+    try { localStorage.setItem('universo-map-text', showMapText ? 'shown' : 'hidden'); } catch { /* Storage is optional. */ }
+  }, [showMapText]);
   useEffect(() => {
     if (indexOpen) indexClose.current?.focus();
     else if (indexWasOpen.current) indexButton.current?.focus();
@@ -136,12 +143,12 @@ export default function App() {
           </div>
           <section ref={mapArea} className={'map-area ' + (activeSubject ? 'has-selection' : '')} aria-label="Mapa interactivo de asignaturas">
             <div className="map-corner top-left"/><div className="map-corner top-right"/><div className="map-corner bottom-left"/><div className="map-corner bottom-right"/>
-            <UniverseGraph ref={graph} subjects={filteredSubjects} lessons={filteredLessons} selectedId={selectedId} highlightedIds={query.trim() ? results.map(r => r.id) : null} onSelectSubject={selectSubject} onOpenLesson={openLesson} onZoomChange={setZoom}/>
+            <UniverseGraph ref={graph} subjects={filteredSubjects} lessons={filteredLessons} selectedId={selectedId} highlightedIds={query.trim() ? results.map(r => r.id) : null} showLabels={showMapText} onSelectSubject={selectSubject} onOpenLesson={openLesson} onZoomChange={setZoom}/>
             {category !== 'all' && !filteredLessons.length && <div className="filter-empty" role="status">Todavía no hay {categories[category as Category].toLowerCase()} en este curso.</div>}
-            {activeSubject && <aside className="subject-panel" aria-label={'Detalles de ' + activeSubject.name}><div className="panel-top"><span className="technical-label">ASIGNATURA / {activeSubject.year}.º CURSO</span><button className="icon-button" aria-label="Cerrar asignatura" onClick={() => setSelectedId(null)}><X size={20}/></button></div><div className="panel-planet" style={{'--planet':activeSubject.color} as React.CSSProperties}>{activeSubject.abbreviation}</div><h2>{activeSubject.name}</h2><div className="panel-meta">{activeLessons.length} {activeLessons.length === 1 ? 'clase disponible' : 'clases disponibles'}</div>
+            {activeSubject && <aside className="subject-panel" aria-label={'Detalles de ' + activeSubject.name}><div className="panel-top"><span className="technical-label">ASIGNATURA / {activeSubject.year}.º CURSO</span><button className="icon-button" aria-label="Cerrar asignatura" onClick={() => setSelectedId(null)}><X size={20}/></button></div><div className="panel-planet" style={{'--planet':activeSubject.color,'--planet-ink':contrastingInk(activeSubject.color)} as React.CSSProperties}>{activeSubject.abbreviation}</div><h2>{activeSubject.name}</h2><div className="panel-meta">{activeLessons.length} {activeLessons.length === 1 ? 'clase disponible' : 'clases disponibles'}</div>
               {activeLessons.length ? <div className="lesson-list">{activeLessons.map(l => <button key={l.id} onClick={() => openLesson(l.id)}><span><small className="lesson-date">{formatDate(l.date)}{l.category ? ' / ' + categories[l.category] : ''}</small>{l.title}<small>{l.description}</small></span><ArrowUpRight size={18}/></button>)}</div> : <div className="empty-subject"><BookOpen size={24}/><h3>El siguiente capítulo.</h3><p>{category === 'all' ? 'Las clases que añadas a esta asignatura aparecerán aquí, conectadas a su planeta.' : 'No hay clases de este tipo en la asignatura. Cambia el filtro para consultar el resto.'}</p><button onClick={() => setModal('add')}>Añadir una visualización<ArrowUpRight size={17}/></button></div>}
             </aside>}
-            <div className="zoom-controls"><button aria-label="Alejar" onClick={() => graph.current?.zoomBy(0.8)}><Minus size={18}/></button><output aria-label="Nivel de zoom">{Math.round(zoom*100)}%</output><button aria-label="Acercar" onClick={() => graph.current?.zoomBy(1.25)}><Plus size={18}/></button><span/><button aria-label="Ajustar universo a la pantalla" title="Ajustar a pantalla" onClick={() => {setSelectedId(null); graph.current?.fit();}}><Maximize size={18}/></button></div>
+            <div className="zoom-controls"><button className="map-text-toggle" aria-pressed={showMapText} aria-label={showMapText ? 'Ocultar textos del mapa' : 'Mostrar textos del mapa'} title={showMapText ? 'Ocultar textos del mapa' : 'Mostrar textos del mapa'} onClick={() => setShowMapText(value => !value)}><Type size={18}/><span>Textos</span></button><span/><button aria-label="Alejar" onClick={() => graph.current?.zoomBy(0.8)}><Minus size={18}/></button><output aria-label="Nivel de zoom">{Math.round(zoom*100)}%</output><button aria-label="Acercar" onClick={() => graph.current?.zoomBy(1.25)}><Plus size={18}/></button><span/><button aria-label="Ajustar universo a la pantalla" title="Ajustar a pantalla" onClick={() => {setSelectedId(null); graph.current?.fit();}}><Maximize size={18}/></button></div>
           </section>
           <div className="figure-footer"><div className="map-legend"><span><i className="legend-planet"/>Asignatura</span><span><i className="legend-satellite"/>Clase</span><span className="legend-separator"/><span><i className="warm"/>3.º curso</span><span><i className="cool"/>4.º curso</span></div><div className="figure-count"><strong>{filteredSubjects.length.toString().padStart(2,'0')}</strong> ASIGNATURAS <span>/</span> <strong>{filteredLessons.length.toString().padStart(2,'0')}</strong> {filteredLessons.length === 1 ? 'CLASE' : 'CLASES'}</div></div>
         </section>

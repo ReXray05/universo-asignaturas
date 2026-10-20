@@ -1,8 +1,9 @@
-import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { select } from 'd3-selection';
 import { zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
 import type { Lesson, Subject } from '../types';
 import { createLayout, wrapLabel, type GraphNode } from '../lib/layout';
+import { contrastingInk } from '../lib/colors';
 import './graph.css';
 
 export interface GraphHandle { fit(): void; zoomBy(factor: number): void; focus(id: string): void }
@@ -11,12 +12,13 @@ interface Props {
   lessons: Lesson[];
   selectedId: string | null;
   highlightedIds: string[] | null;
+  showLabels: boolean;
   onSelectSubject(id: string): void;
   onOpenLesson(id: string): void;
   onZoomChange?(scale: number): void;
 }
 
-const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ subjects, lessons, selectedId, highlightedIds, onSelectSubject, onOpenLesson, onZoomChange }, ref) {
+const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ subjects, lessons, selectedId, highlightedIds, showLabels, onSelectSubject, onOpenLesson, onZoomChange }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const layerRef = useRef<SVGGElement>(null);
@@ -29,7 +31,6 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
   const [zoomScale, setZoomScale] = useState(1);
   const [hovered, setHovered] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{ node: GraphNode; x: number; y: number } | null>(null);
-  const prefix = useId().replace(/:/g, '');
   const { nodes, links } = useMemo(() => createLayout(subjects, lessons), [subjects, lessons]);
   const nodeMap = useMemo(() => new Map(nodes.map(node => [node.key, node])), [nodes]);
   const counts = useMemo(() => {
@@ -183,14 +184,6 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
         else if (event.key === '-' || event.key === '−') { event.preventDefault(); zoomBy(0.8); }
         else if (event.key === 'Home') { event.preventDefault(); fit(); }
       }}>
-      <defs>
-        {subjects.map(subject => <linearGradient key={subject.id} id={`${prefix}-${subject.id}`} x1="15%" y1="10%" x2="85%" y2="90%">
-          <stop offset="0%" stopColor={`color-mix(in srgb, ${subject.color} 12%, var(--planet-top))`} />
-          <stop offset="48%" stopColor={`color-mix(in srgb, ${subject.color} 18%, var(--planet-middle))`} />
-          <stop offset="78%" stopColor={`color-mix(in srgb, ${subject.color} 24%, var(--planet-lower))`} />
-          <stop offset="100%" stopColor={`color-mix(in srgb, ${subject.color} 28%, var(--planet-bottom))`} />
-        </linearGradient>)}
-      </defs>
       <g ref={layerRef}>
         <g className="universe-links" aria-hidden="true">
           {links.map(link => {
@@ -207,13 +200,13 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
           const dimmed = highlighted !== null && !matched;
           const metrics = labelMetrics(zoomScale, node.subject.name);
           const lines = isSubject ? metrics.lines : [];
-          // Small screens use the index, search results and subject sheet for full names.
-          const showName = !compact;
+          // Keep small-screen labels sparse until a node is focused or the map is enlarged.
+          const showName = showLabels && (!compact || zoomScale >= .65 || active || matched);
           const count = counts.get(node.id) || 0;
           const labelBaseline = isSubject ? subjectLabelY(node, zoomScale, metrics) : 0;
           const visualRadius = Math.max(39, 16 / zoomScale);
           const satelliteRadius = Math.max(8, 5 / zoomScale);
-          return <g key={node.key} data-node-key={node.key} transform={`translate(${node.x}, ${node.y})`} className={`universe-node ${isSubject ? 'planet-node' : 'lesson-node'}${active ? ' is-active' : ''}${dimmed ? ' is-dimmed' : ''}${matched ? ' is-match' : ''}`} tabIndex={0} role="button"
+          return <g key={node.key} data-node-key={node.key} style={{'--node-color':node.subject.color,'--node-ink':contrastingInk(node.subject.color)} as CSSProperties} transform={`translate(${node.x}, ${node.y})`} className={`universe-node ${isSubject ? 'planet-node' : 'lesson-node'}${active ? ' is-active' : ''}${dimmed ? ' is-dimmed' : ''}${matched ? ' is-match' : ''}`} tabIndex={0} role="button"
             aria-label={isSubject ? `${node.subject.name}. ${node.subject.year}.º curso. ${count} ${count === 1 ? 'clase' : 'clases'}. Enfocar asignatura.` : `${node.lesson!.title}. ${node.subject.name}. Abrir visualización.`}
             onMouseEnter={() => showTooltip(node)} onMouseLeave={() => { setHovered(null); setTooltip(null); }}
             onFocus={() => showTooltip(node)} onBlur={() => { setHovered(null); setTooltip(null); }}
@@ -222,11 +215,11 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
               if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(node); }
               if (event.key === 'Escape') { setHovered(null); setTooltip(null); }
             }}>
-            <title>{isSubject ? `${node.subject.name} · ${count} ${count === 1 ? 'clase' : 'clases'}` : `${node.lesson!.title}${node.lesson!.description ? ` — ${node.lesson!.description}` : ''}`}</title>
+            {showLabels && <title>{isSubject ? `${node.subject.name} · ${count} ${count === 1 ? 'clase' : 'clases'}` : `${node.lesson!.title}${node.lesson!.description ? ` — ${node.lesson!.description}` : ''}`}</title>}
             {isSubject ? <>
               <circle className="node-hit-area" r={Math.max(56, 22 / zoomScale)} fill="transparent" />
               <circle className="planet-focus-ring" r={visualRadius + 7 / zoomScale} fill="none" strokeWidth="1" />
-              <circle className="planet-body" r={visualRadius} fill={`url(#${prefix}-${node.id})`} stroke={`color-mix(in srgb, ${node.subject.color} 60%, var(--graph-ink))`} strokeWidth="1" />
+              <circle className="planet-body" r={visualRadius} fill={node.subject.color} strokeWidth="1" />
               <ellipse className="planet-contour" rx={visualRadius * .95} ry={visualRadius * .34} transform="rotate(-28)" fill="none" strokeWidth="0.6" />
               <ellipse className="planet-contour meridian" rx={visualRadius * .34} ry={visualRadius * .95} transform="rotate(-28)" fill="none" strokeWidth="0.6" />
               <text className="planet-abbreviation" style={{ fontSize: metrics.abbreviationFont }} textAnchor="middle" dominantBaseline="central">{node.subject.abbreviation}</text>
@@ -244,7 +237,7 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
         })}
       </g>
     </svg>
-    {tooltip?.node.lesson && <div className="universe-tooltip" role="tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+    {showLabels && tooltip?.node.lesson && <div className="universe-tooltip" role="tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
       <span className="tooltip-subject" style={{ color: tooltip.node.subject.color }}>{tooltip.node.subject.name}</span>
       <strong>{tooltip.node.lesson.title}</strong>
       {tooltip.node.lesson.description && <p>{tooltip.node.lesson.description}</p>}

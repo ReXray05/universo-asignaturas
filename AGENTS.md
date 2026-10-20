@@ -23,6 +23,7 @@ Antes de trabajar, localiza este archivo, inspecciona `git remote -v`, la rama y
 ## Arquitectura y límites
 
 - Sigue la dirección visual del propietario conservada en `docs/visual-direction.md`: papel cálido, tinta, tipografía de sistema, rótulos monoespaciados, marcos rectangulares y controles legibles de al menos 44 px. El tema claro es la base; ambos temas deben estar completos. El color identifica asignaturas y estados; evita halos, brillos y adorno orbital. No alteres el diseño interno de las clases al retocar el portal.
+- Los once colores de asignatura fueron elegidos expresamente por el propietario y están en `subjects.json`; conserva sus tonos definidos, sin diluirlos con superficies neutras. Las abreviaturas usan tinta calculada con contraste mínimo 4.5:1 sobre su color. El control «Textos» junto al zoom oculta etiquetas y datos del grafo, nunca las abreviaturas, y recuerda la preferencia en el navegador.
 
 - React + TypeScript + Vite. Portal estático para GitHub Pages, sin servicios permanentes ni dependencias de pago.
 - Asignaturas en `src/data/subjects.json`; clases en `src/data/lessons.json`; archivos en `public/lessons/<id>/index.html` con sus recursos.

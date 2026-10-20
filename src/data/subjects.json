@@ -1,13 +1,13 @@
 [
-  {"id":"tmm","name":"Teoría de Máquinas y Mecanismos","abbreviation":"TMM","year":3,"color":"#dfb878","position":{"x":-440,"y":-235}},
-  {"id":"termica","name":"Ingeniería Térmica","abbreviation":"IT","year":3,"color":"#e58e6e","position":{"x":-135,"y":-290}},
-  {"id":"electronica","name":"Electrónica","abbreviation":"EL","year":3,"color":"#d3b067","position":{"x":-285,"y":5}},
-  {"id":"maquinas-electricas","name":"Máquinas Eléctricas","abbreviation":"ME","year":3,"color":"#b9ba7e","position":{"x":-565,"y":80}},
-  {"id":"materiales","name":"Ingeniería de Materiales","abbreviation":"IM","year":3,"color":"#d89e92","position":{"x":-170,"y":265}},
-  {"id":"efvm","name":"Elementos Finitos y Vibraciones Mecánicas","abbreviation":"EFV","year":4,"color":"#94bcb0","position":{"x":185,"y":-210}},
-  {"id":"fabricacion","name":"Ingeniería de Fabricación","abbreviation":"IF","year":4,"color":"#91b6ce","position":{"x":495,"y":-275}},
-  {"id":"motores","name":"Motores Alternativos","abbreviation":"MA","year":4,"color":"#b2a5d2","position":{"x":80,"y":60}},
-  {"id":"oficina-tecnica","name":"Oficina Técnica","abbreviation":"OT","year":4,"color":"#7eaeab","position":{"x":405,"y":5}},
-  {"id":"metrologia","name":"Metrología y Calidad","abbreviation":"MC","year":4,"color":"#9aaed2","position":{"x":245,"y":285}},
-  {"id":"sff","name":"Sistemas de Fabricación Flexible","abbreviation":"SFF","year":4,"color":"#bcacd0","position":{"x":590,"y":235}}
+  {"id":"tmm","name":"Teoría de Máquinas y Mecanismos","abbreviation":"TMM","year":3,"color":"#9e0142","position":{"x":-440,"y":-235}},
+  {"id":"termica","name":"Ingeniería Térmica","abbreviation":"IT","year":3,"color":"#d53e4f","position":{"x":-135,"y":-290}},
+  {"id":"electronica","name":"Electrónica","abbreviation":"EL","year":3,"color":"#f46d43","position":{"x":-285,"y":5}},
+  {"id":"maquinas-electricas","name":"Máquinas Eléctricas","abbreviation":"ME","year":3,"color":"#fdae61","position":{"x":-565,"y":80}},
+  {"id":"materiales","name":"Ingeniería de Materiales","abbreviation":"IM","year":3,"color":"#fee08b","position":{"x":-170,"y":265}},
+  {"id":"efvm","name":"Elementos Finitos y Vibraciones Mecánicas","abbreviation":"EFV","year":4,"color":"#ffffbf","position":{"x":185,"y":-210}},
+  {"id":"fabricacion","name":"Ingeniería de Fabricación","abbreviation":"IF","year":4,"color":"#e6f598","position":{"x":495,"y":-275}},
+  {"id":"motores","name":"Motores Alternativos","abbreviation":"MA","year":4,"color":"#abdda4","position":{"x":80,"y":60}},
+  {"id":"oficina-tecnica","name":"Oficina Técnica","abbreviation":"OT","year":4,"color":"#66c2a5","position":{"x":405,"y":5}},
+  {"id":"metrologia","name":"Metrología y Calidad","abbreviation":"MC","year":4,"color":"#3288bd","position":{"x":245,"y":285}},
+  {"id":"sff","name":"Sistemas de Fabricación Flexible","abbreviation":"SFF","year":4,"color":"#5e4fa2","position":{"x":590,"y":235}}
 ]
