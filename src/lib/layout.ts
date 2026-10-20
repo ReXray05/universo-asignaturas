@@ -16,7 +16,7 @@ export interface GraphLink { source: string; target: string }
 interface SavedPosition { x: number; y: number }
 const STORAGE_KEY = 'universo.positions.v1';
 
-function readPositions(): Record<string, SavedPosition> {
+export function readPositions(): Record<string, SavedPosition> {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
@@ -25,6 +25,34 @@ function readPositions(): Record<string, SavedPosition> {
       return !!p && typeof p === 'object' && Number.isFinite(p.x) && Number.isFinite(p.y) && Math.abs(p.x) < 1e6 && Math.abs(p.y) < 1e6;
     }));
   } catch { return {}; }
+}
+
+/** Merge visible coordinates without losing positions hidden by a filter. */
+export function savePositions(nodes: GraphNode[]): void {
+  const positions = readPositions();
+  for (const node of nodes) positions[node.key] = { x: +node.x.toFixed(3), y: +node.y.toFixed(3) };
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(positions)); } catch { /* Storage is optional. */ }
+}
+
+export function planetRadius(count: number, enabled: boolean): number {
+  return 39 + (enabled ? Math.min(39, 4 * Math.sqrt(Math.max(0, count))) : 0);
+}
+
+/** Brief, local relaxation around the user's arrangement; no return to seed coordinates. */
+export function relaxLayout(nodes: GraphNode[], links: GraphLink[], fixedKey?: string, minimumRadius = 0) {
+  const anchors = new Map(nodes.map(node => [node.key, { x: node.x, y: node.y }]));
+  for (const node of nodes) {
+    node.fx = node.key === fixedKey ? node.x : null;
+    node.fy = node.key === fixedKey ? node.y : null;
+    node.vx = node.vy = 0;
+  }
+  return forceSimulation(nodes).alphaDecay(.065).velocityDecay(.48)
+    .force('link', forceLink<GraphNode, GraphLink>(links.map(link => ({ ...link }))).id(node => node.key)
+      .distance(link => Math.max(126, (link.source as unknown as GraphNode).radius + 80)).strength(.3))
+    .force('collision', forceCollide<GraphNode>().radius(node => node.kind === 'subject' ? Math.max(node.radius, minimumRadius * node.radius / 39) + 25 : Math.max(8, minimumRadius * .3125) + 7).iterations(5).strength(1))
+    .force('charge', forceManyBody<GraphNode>().strength(node => node.kind === 'subject' ? -75 : -15).distanceMax(220))
+    .force('x', forceX<GraphNode>(node => anchors.get(node.key)!.x).strength(node => node.kind === 'subject' ? .12 : .015))
+    .force('y', forceY<GraphNode>(node => anchors.get(node.key)!.y).strength(node => node.kind === 'subject' ? .12 : .015));
 }
 
 function hash(value: string): number {

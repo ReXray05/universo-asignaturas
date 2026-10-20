@@ -36,3 +36,6 @@
 .tooltip-hint { display: block; margin-top: 12px; font: 11px var(--font-mono); color: var(--strong); }
 .graph-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--secondary); text-align: center; padding: 32px; pointer-events: none; }
 @media(prefers-reduced-motion: reduce) { .universe-node,.planet-focus-ring,.lesson-focus-ring,.universe-links line { transition: none; } }
+
+.universe-node.is-dragging { cursor: grabbing; }
+.universe-node.is-dragging .planet-focus-ring { opacity: 1; stroke-dasharray: 3 3; }

@@ -2,7 +2,8 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import { select } from 'd3-selection';
 import { zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
 import type { Lesson, Subject } from '../types';
-import { createLayout, wrapLabel, type GraphNode } from '../lib/layout';
+import { createLayout, wrapLabel, planetRadius, relaxLayout, savePositions, type GraphNode } from '../lib/layout';
+import { attachMapGestures } from '../lib/mapGestures';
 import { contrastingInk } from '../lib/colors';
 import './graph.css';
 
@@ -13,12 +14,14 @@ interface Props {
   selectedId: string | null;
   highlightedIds: string[] | null;
   showLabels: boolean;
+  growPlanets: boolean;
+  allLessons: Lesson[];
   onSelectSubject(id: string): void;
   onOpenLesson(id: string): void;
   onZoomChange?(scale: number): void;
 }
 
-const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ subjects, lessons, selectedId, highlightedIds, showLabels, onSelectSubject, onOpenLesson, onZoomChange }, ref) {
+const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ subjects, lessons, selectedId, highlightedIds, showLabels, growPlanets, allLessons, onSelectSubject, onOpenLesson, onZoomChange }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const layerRef = useRef<SVGGElement>(null);
@@ -29,6 +32,9 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
   zoomChangeRef.current = onZoomChange;
   const [size, setSize] = useState({ width: 1000, height: 700 });
   const [zoomScale, setZoomScale] = useState(1);
+  const [, redraw] = useState(0);
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const physicsRef = useRef<ReturnType<typeof relaxLayout> | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{ node: GraphNode; x: number; y: number } | null>(null);
   const { nodes, links } = useMemo(() => createLayout(subjects, lessons), [subjects, lessons]);
@@ -38,6 +44,39 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
     for (const lesson of lessons) result.set(lesson.subjectId, (result.get(lesson.subjectId) || 0) + 1);
     return result;
   }, [lessons]);
+  const growthCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const lesson of allLessons) counts.set(lesson.subjectId, (counts.get(lesson.subjectId) || 0) + 1);
+    return counts;
+  }, [allLessons]);
+  const settle = useCallback((fixedKey?: string) => {
+    physicsRef.current?.stop();
+    savePositions(nodes);
+    const simulation = relaxLayout(nodes, links, fixedKey, 16 / transformRef.current.k);
+    physicsRef.current = simulation;
+    const finish = () => {
+      for (const node of nodes) { node.fx = node.fy = null; node.vx = node.vy = 0; }
+      savePositions(nodes);
+      redraw(value => value + 1);
+    };
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      simulation.stop().tick(130); finish();
+    } else simulation.on('tick', () => redraw(value => value + 1)).on('end', finish);
+  }, [nodes, links]);
+  useEffect(() => {
+    let changed = false;
+    for (const node of nodes) if (node.kind === 'subject') {
+      const radius = planetRadius(growthCounts.get(node.id) || 0, growPlanets);
+      changed ||= radius !== node.radius;
+      node.radius = radius;
+    }
+    if (changed) settle();
+  }, [nodes, growthCounts, growPlanets, settle]);
+  useEffect(() => {
+    const save = () => savePositions(nodes);
+    window.addEventListener('pagehide', save);
+    return () => { window.removeEventListener('pagehide', save); physicsRef.current?.stop(); save(); };
+  }, [nodes]);
   const hoveredNode = hovered ? nodeMap.get(hovered) : undefined;
   const highlighted = highlightedIds === null ? null : new Set(highlightedIds);
   const compact = size.width < 600;
@@ -54,10 +93,12 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
     };
   };
   const subjectLabelY = (node: GraphNode, scale: number, metrics: ReturnType<typeof labelMetrics>) => {
+    const radius = Math.max(node.radius, 16 / scale * node.radius / 39);
+    const radiusOffset = radius - Math.max(39, 16 / scale);
     const halfWidth = Math.max(...metrics.lines.map(line => line.length)) * metrics.font * .55 / 2;
     const bottom = metrics.firstLine + (metrics.lines.length - 1) * metrics.lineHeight + metrics.metaGap + metrics.metaFont;
-    const satelliteBelow = nodes.some(other => other.kind === 'lesson' && Math.abs(other.x - node.x) < halfWidth + 16 && other.y > node.y + 39 && other.y < node.y + bottom + 16);
-    return satelliteBelow ? -Math.max(39, 16 / scale) - Math.max(28, 20 / scale) - (metrics.lines.length - 1) * metrics.lineHeight - metrics.metaGap : metrics.firstLine;
+    const satelliteBelow = nodes.some(other => other.kind === 'lesson' && Math.abs(other.x - node.x) < halfWidth + 16 && other.y > node.y + radius && other.y < node.y + bottom + 16);
+    return satelliteBelow ? -radius - Math.max(28, 20 / scale) - (metrics.lines.length - 1) * metrics.lineHeight - metrics.metaGap : metrics.firstLine + radiusOffset;
   };
 
   const applyTransform = useCallback((target: ZoomTransform, animate = true) => {
@@ -90,9 +131,10 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
         if (node.kind === 'lesson') return { left: node.x - 16, right: node.x + 16, top: node.y - 16, bottom: node.y + 16 };
         const metrics = labelMetrics(scale, node.subject.name);
         const baseline = subjectLabelY(node, scale, metrics);
-        const width = compact ? 52 : Math.max(55, Math.max(...metrics.lines.map(line => line.length)) * metrics.font * 0.55 / 2);
-        const bottom = compact ? 55 : Math.max(55, baseline + (metrics.lines.length - 1) * metrics.lineHeight + metrics.metaGap + metrics.metaFont * 0.3);
-        const top = compact ? -55 : Math.min(-55, baseline - metrics.font);
+        const radius = Math.max(node.radius, 16 / scale * node.radius / 39) + 12;
+        const width = compact ? radius : Math.max(radius, Math.max(...metrics.lines.map(line => line.length)) * metrics.font * 0.55 / 2);
+        const bottom = compact ? radius : Math.max(radius, baseline + (metrics.lines.length - 1) * metrics.lineHeight + metrics.metaGap + metrics.metaFont * 0.3);
+        const top = compact ? -radius : Math.min(-radius, baseline - metrics.font);
         return { left: node.x - width, right: node.x + width, top: node.y + top, bottom: node.y + bottom };
       });
       minX = Math.min(...bounds.map(bound => bound.left)); maxX = Math.max(...bounds.map(bound => bound.right));
@@ -138,7 +180,7 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
     const svg = svgRef.current;
     if (!svg) return;
     const behavior = zoom<SVGSVGElement, unknown>().scaleExtent([0.08, 4]).touchable(() => true)
-      .filter(event => !event.button && event.type !== 'dblclick')
+      .filter(event => event.type === 'wheel' && !event.button)
       .on('start', event => {
         if (event.sourceEvent && animationRef.current !== null) { cancelAnimationFrame(animationRef.current); animationRef.current = null; }
         setTooltip(null);
@@ -156,6 +198,24 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
       if (animationRef.current !== null) cancelAnimationFrame(animationRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    return attachMapGestures(svg, nodes, size, {
+      onStart: () => {
+        physicsRef.current?.stop();
+        if (animationRef.current !== null) { cancelAnimationFrame(animationRef.current); animationRef.current = null; }
+      },
+      onHideTooltip: () => setTooltip(null),
+      onArm: setDraggingKey,
+      onMove: () => redraw(value => value + 1),
+      onSettle: settle,
+      onSave: () => savePositions(nodes),
+      getTransform: () => transformRef.current,
+      onTransform: target => applyTransform(target, false),
+    });
+  }, [nodes, nodeMap, size, applyTransform, settle]);
 
   useEffect(() => { fit(false); }, [fit]);
 
@@ -204,20 +264,27 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
           const showName = showLabels && (!compact || zoomScale >= .65 || active || matched);
           const count = counts.get(node.id) || 0;
           const labelBaseline = isSubject ? subjectLabelY(node, zoomScale, metrics) : 0;
-          const visualRadius = Math.max(39, 16 / zoomScale);
+          const visualRadius = Math.max(node.radius, 16 / zoomScale * node.radius / 39);
           const satelliteRadius = Math.max(8, 5 / zoomScale);
-          return <g key={node.key} data-node-key={node.key} style={{'--node-color':node.subject.color,'--node-ink':contrastingInk(node.subject.color)} as CSSProperties} transform={`translate(${node.x}, ${node.y})`} className={`universe-node ${isSubject ? 'planet-node' : 'lesson-node'}${active ? ' is-active' : ''}${dimmed ? ' is-dimmed' : ''}${matched ? ' is-match' : ''}`} tabIndex={0} role="button"
+          return <g key={node.key} data-node-key={node.key} style={{'--node-color':node.subject.color,'--node-ink':contrastingInk(node.subject.color)} as CSSProperties} transform={`translate(${node.x}, ${node.y})`} className={`universe-node ${isSubject ? 'planet-node' : 'lesson-node'}${active ? ' is-active' : ''}${draggingKey === node.key ? ' is-dragging' : ''}${dimmed ? ' is-dimmed' : ''}${matched ? ' is-match' : ''}`} tabIndex={0} role="button"
             aria-label={isSubject ? `${node.subject.name}. ${node.subject.year}.º curso. ${count} ${count === 1 ? 'clase' : 'clases'}. Enfocar asignatura.` : `${node.lesson!.title}. ${node.subject.name}. Abrir visualización.`}
             onMouseEnter={() => showTooltip(node)} onMouseLeave={() => { setHovered(null); setTooltip(null); }}
             onFocus={() => showTooltip(node)} onBlur={() => { setHovered(null); setTooltip(null); }}
             onClick={event => { event.stopPropagation(); activate(node); }}
             onKeyDown={event => {
+              if (isSubject && event.altKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+                event.preventDefault(); event.stopPropagation();
+                const dx = event.key === 'ArrowLeft' ? -24 : event.key === 'ArrowRight' ? 24 : 0;
+                const dy = event.key === 'ArrowUp' ? -24 : event.key === 'ArrowDown' ? 24 : 0;
+                for (const item of nodes) if (item.subjectId === node.id) { item.x += dx; item.y += dy; }
+                redraw(value => value + 1); settle(node.key); return;
+              }
               if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(node); }
               if (event.key === 'Escape') { setHovered(null); setTooltip(null); }
             }}>
             {showLabels && <title>{isSubject ? `${node.subject.name} · ${count} ${count === 1 ? 'clase' : 'clases'}` : `${node.lesson!.title}${node.lesson!.description ? ` — ${node.lesson!.description}` : ''}`}</title>}
             {isSubject ? <>
-              <circle className="node-hit-area" r={Math.max(56, 22 / zoomScale)} fill="transparent" />
+              <circle className="node-hit-area" r={Math.max(visualRadius + 17, 22 / zoomScale)} fill="transparent" />
               <circle className="planet-focus-ring" r={visualRadius + 7 / zoomScale} fill="none" strokeWidth="1" />
               <circle className="planet-body" r={visualRadius} fill={node.subject.color} strokeWidth="1" />
               <ellipse className="planet-contour" rx={visualRadius * .95} ry={visualRadius * .34} transform="rotate(-28)" fill="none" strokeWidth="0.6" />

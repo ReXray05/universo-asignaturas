@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createLayout } from '../src/lib/layout.ts';
+import { createLayout, planetRadius, relaxLayout, savePositions } from '../src/lib/layout.ts';
 const subjects = JSON.parse(await readFile(new URL('../src/data/subjects.json', import.meta.url)));
 test('all eleven subjects are present and stable when the library grows', () => {
   const memory = new Map();
@@ -28,4 +28,41 @@ test('all eleven subjects are present and stable when the library grows', () => 
     assert.ok(Math.hypot(a.x-b.x,a.y-b.y)>Math.abs(a.radius-b.radius),'No node may completely hide another');
   }
   delete globalThis.localStorage;
+});
+
+
+test('experimental radii grow gradually, are bounded and can be disabled', () => {
+  assert.equal(planetRadius(0,true),39);
+  assert.equal(planetRadius(1,true),43);
+  assert.ok(planetRadius(4,true)>planetRadius(1,true));
+  assert.ok(planetRadius(100000,true)<=78);
+  assert.equal(planetRadius(100,false),39);
+});
+
+test('a relocated planet stays at its drop position, neighbours react and coordinates persist across filters', () => {
+  const memory = new Map();
+  globalThis.localStorage = {getItem:key => memory.get(key) ?? null,setItem:(key,value) => memory.set(key,value)};
+  try {
+    const {nodes,links} = createLayout(subjects,[]);
+    const moved=nodes[0], neighbour=nodes[1], distant=nodes[10];
+    const before={x:neighbour.x,y:neighbour.y};
+    const far={x:distant.x,y:distant.y};
+    moved.x=neighbour.x+10; moved.y=neighbour.y+5;
+    const drop={x:moved.x,y:moved.y};
+    const simulation=relaxLayout(nodes,links,moved.key).stop();
+    simulation.tick(150);
+    assert.equal(moved.x,drop.x); assert.equal(moved.y,drop.y);
+    assert.ok(Math.hypot(neighbour.x-before.x,neighbour.y-before.y)>20);
+    assert.ok(Math.hypot(neighbour.x-moved.x,neighbour.y-moved.y)>moved.radius+neighbour.radius);
+    assert.ok(Math.hypot(distant.x-far.x,distant.y-far.y)<8);
+    assert.ok(simulation.alpha()<simulation.alphaMin(),'Physics reaches rest after a bounded relaxation');
+    savePositions(nodes);
+    const saved=createLayout(subjects,[]).nodes;
+    for(const node of nodes) {
+      const after=saved.find(n=>n.key===node.key);
+      assert.ok(Math.hypot(after.x-node.x,after.y-node.y)<.002);
+    }
+    savePositions([saved[0]]);
+    assert.equal(Object.keys(JSON.parse(memory.get('universo.positions.v1'))).length,11);
+  } finally { delete globalThis.localStorage; }
 });

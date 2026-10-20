@@ -130,3 +130,9 @@ npm run preview
 ```
 
 El portal funciona sin base de datos, cuentas, servicios de pago ni servidor permanente. El navegador conserva las preferencias de tema y las posiciones guardadas localmente; esas preferencias no se sincronizan entre dispositivos.
+
+### Personalizar el mapa
+
+Arrastra directamente para mover la cámara. Para recolocar una asignatura, mantén pulsado su planeta unos 0,3 segundos y después arrastra; sus clases lo acompañan y los vecinos se acomodan al soltar. El mapa se estabiliza y guarda las posiciones en este navegador. También puedes enfocar un planeta con Tab y moverlo con Alt + las flechas.
+
+En **Guía**, activa **Tamaño según número de clases** para probar el crecimiento gradual de los planetas. Está desactivado inicialmente y recuerda tu elección. Usa el total de clases publicadas, aunque se esté filtrando el mapa. El botón **Textos**, junto al zoom, controla las etiquetas sin ocultar las abreviaturas.

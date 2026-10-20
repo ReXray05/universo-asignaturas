@@ -34,3 +34,10 @@ Antes de trabajar, localiza este archivo, inspecciona `git remote -v`, la rama y
 - Nunca añadas datos ficticios como contenido permanente para una prueba. Los tests de incorporación utilizan carpetas temporales.
 - Mantén el README sin referencias al nombre de ninguna skill de generación de visualizaciones.
 - No publiques `work/`, copias de seguridad, dependencias locales, archivos de credenciales ni fuentes que no deban ser públicas.
+
+## Interacción y tamaño del mapa
+
+- Arrastrar inmediatamente sobre un planeta desplaza la cámara. Mantener 320 ms sin superar 6 px de desplazamiento arma el arrastre del planeta; después mueve también sus satélites. Conserva esta distinción, la captura del puntero, el zoom con dos dedos y la supresión del clic posterior al arrastre.
+- Al soltar, una simulación breve desplaza vecinos para resolver colisiones y se detiene. No devuelve los nodos a las coordenadas iniciales ni recentra la cámara. Guarda posiciones inmediatamente y al terminar; conserva también las ocultas por filtros. Alt + flechas ofrece una alternativa de teclado.
+- La guía contiene «Tamaño según número de clases», experimental, desactivada inicialmente y persistida localmente. Usa el total real de clases de cada asignatura, sin variar al filtrar: radio 39 + min(39, 4 × sqrt(clases)). Ajusta etiquetas, encuadre y colisiones al radio. No añadas clases ficticias para mostrar el efecto.
+- El control «Textos» debe mantenerse discreto, sin fondo sólido al estar activo.
