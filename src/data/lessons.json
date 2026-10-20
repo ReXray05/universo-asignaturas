@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "efvm-vibraciones-mecanicas",
+    "subjectId": "efvm",
+    "title": "Vibraciones mecánicas: de la fuerza a la ecuación",
+    "description": "Base móvil, vibración libre, desequilibrio rotatorio y sistemas de dos grados de libertad, con modelos y controles interactivos.",
+    "path": "lessons/efvm-vibraciones-mecanicas/index.html",
+    "category": "notas-clase",
+    "tags": [
+      "vibraciones",
+      "amortiguamiento",
+      "dos grados de libertad"
+    ],
+    "date": "2026-10-20"
+  }
+]
