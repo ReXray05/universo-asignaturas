@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronDown, ChevronRight, CircleHelp, Copy, Crosshair, ExternalLink, GraduationCap, Maximize, Minus, Moon, Network, Plus, Search, SlidersHorizontal, Sun, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronDown, CircleHelp, Copy, Crosshair, ExternalLink, GraduationCap, List, Maximize, Minus, Moon, Network, Plus, Search, Sun, X } from 'lucide-react';
 import UniverseGraph, { type GraphHandle } from './components/UniverseGraph';
 import subjectsData from './data/subjects.json';
 import lessonsData from './data/lessons.json';
@@ -10,11 +10,19 @@ const lessons = lessonsData as Lesson[];
 const categories: Record<Category, string> = { 'notas-clase': 'Notas de clase', 'apuntes-estudio': 'Apuntes de estudio', laboratorio: 'Prácticas de laboratorio' };
 const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const readHash = () => { try { return decodeURIComponent(location.hash.slice(1)); } catch { return '/invalid'; } };
-const getStoredTheme = () => { try { return localStorage.getItem('universo-theme') ?? 'dark'; } catch { return 'dark'; } };
+const getStoredTheme = () => { try { return localStorage.getItem('universo-theme') === 'dark' ? 'dark' : 'light'; } catch { return 'light'; } };
+const formatDate = (date?: string | null) => date ? date.split('-').reverse().join('.') : 'Sin fecha';
+const latestLesson = [...lessons].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))[0];
 
 export default function App() {
   const graph = useRef<GraphHandle>(null);
+  const mapArea = useRef<HTMLElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const viewerBack = useRef<HTMLAnchorElement>(null);
+  const indexButton = useRef<HTMLButtonElement>(null);
+  const indexClose = useRef<HTMLButtonElement>(null);
+  const indexWasOpen = useRef(false);
   const [theme, setTheme] = useState(getStoredTheme);
   const [route, setRoute] = useState(readHash);
   const [year, setYear] = useState<0 | 3 | 4>(0);
@@ -23,21 +31,31 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [modal, setModal] = useState<'help' | 'add' | null>(null);
-  const [mobileNav, setMobileNav] = useState(false);
+  const [indexOpen, setIndexOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const viewerBack = useRef<HTMLAnchorElement>(null);
-  const [narrow, setNarrow] = useState(() => matchMedia('(max-width: 800px)').matches);
 
   useEffect(() => { const cb = () => setRoute(readHash()); window.addEventListener('hashchange', cb); return () => window.removeEventListener('hashchange', cb); }, []);
-  useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('universo-theme', theme); } catch { /* Private browsing may disable storage. */ } }, [theme]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.visualTheme = theme;
+    try { localStorage.setItem('universo-theme', theme); } catch { /* Storage is optional. */ }
+  }, [theme]);
   useEffect(() => { if (modal) dialog.current?.showModal(); else dialog.current?.close(); }, [modal]);
-  useEffect(() => { const media = matchMedia('(max-width: 800px)'); const update = () => setNarrow(media.matches); media.addEventListener('change', update); return () => media.removeEventListener('change', update); }, []);
-  useEffect(() => { if(mobileNav) searchInput.current?.focus(); }, [mobileNav]);
+  useEffect(() => {
+    if (indexOpen) indexClose.current?.focus();
+    else if (indexWasOpen.current) indexButton.current?.focus();
+    indexWasOpen.current = indexOpen;
+  }, [indexOpen]);
+  useEffect(() => {
+    if (!indexOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [indexOpen]);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setMobileNav(true); searchInput.current?.focus(); }
-      if (e.key === 'Escape') { setSelectedId(null); setMobileNav(false); setQuery(''); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setIndexOpen(false); requestAnimationFrame(() => searchInput.current?.focus()); }
+      if (e.key === 'Escape') { setSelectedId(null); setIndexOpen(false); setQuery(''); }
     };
     window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler);
   }, []);
@@ -48,8 +66,8 @@ export default function App() {
     const q = normalize(query.trim());
     if (!q) return [];
     return [
-      ...filteredSubjects.filter(s => normalize(`${s.name} ${s.abbreviation}`).includes(q)).map(s => ({id:s.id,title:s.name,subtitle:`${s.year}.º curso · Asignatura`,subject:true,color:s.color})),
-      ...filteredLessons.filter(l => normalize(`${l.title} ${(l.tags ?? []).join(' ')}`).includes(q)).map(l => ({id:l.id,title:l.title,subtitle:subjects.find(s => s.id === l.subjectId)!.name,subject:false,color:subjects.find(s => s.id === l.subjectId)!.color})),
+      ...filteredSubjects.filter(s => normalize(s.name + ' ' + s.abbreviation).includes(q)).map(s => ({id:s.id,title:s.name,subtitle:s.year + '.º curso · Asignatura',subject:true,color:s.color})),
+      ...filteredLessons.filter(l => normalize(l.title + ' ' + (l.tags ?? []).join(' ')).includes(q)).map(l => ({id:l.id,title:l.title,subtitle:subjects.find(s => s.id === l.subjectId)!.name,subject:false,color:subjects.find(s => s.id === l.subjectId)!.color})),
     ];
   }, [query, filteredSubjects, filteredLessons]);
   const activeSubject = subjects.find(s => s.id === selectedId);
@@ -57,48 +75,82 @@ export default function App() {
   const isLessonRoute = route.startsWith('/lesson/');
   const lesson = isLessonRoute ? lessons.find(l => l.id === route.slice(8)) : undefined;
   const lessonSubject = subjects.find(s => s.id === lesson?.subjectId);
-  useEffect(() => { document.title = lesson ? `${lesson.title} · Universo` : 'Universo · Biblioteca de ingeniería'; if(isLessonRoute) viewerBack.current?.focus(); }, [isLessonRoute, lesson]);
+  useEffect(() => { document.title = lesson ? lesson.title + ' · Universo' : 'Universo · Biblioteca de ingeniería'; if (isLessonRoute) viewerBack.current?.focus(); }, [isLessonRoute, lesson]);
 
-  function selectSubject(id: string) { setSelectedId(id); setMobileNav(false); graph.current?.focus(id); }
-  function changeYear(value: 0 | 3 | 4) { setYear(value); setSelectedId(null); setQuery(''); setMobileNav(false); }
-  function openLesson(id: string) { location.hash = `/lesson/${encodeURIComponent(id)}`; }
+  function selectSubject(id: string) {
+    setSelectedId(id); setIndexOpen(false); setQuery('');
+    requestAnimationFrame(() => {
+      mapArea.current?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',block:'center'});
+      graph.current?.focus(id);
+    });
+  }
+  function changeYear(value: 0 | 3 | 4) { setYear(value); setSelectedId(null); setQuery(''); setIndexOpen(false); }
+  function openLesson(id: string) { setQuery(''); location.hash = '/lesson/' + encodeURIComponent(id); }
   async function copyLink() {
     try { await navigator.clipboard.writeText(location.href); setCopied(true); window.setTimeout(() => setCopied(false), 1800); }
     catch { window.prompt('Copia el enlace de esta clase', location.href); }
   }
+
   return <div className="app-shell">
     <a className="skip-link" href="#workspace">Ir al mapa</a>
-    {mobileNav && <button className="nav-backdrop" aria-label="Cerrar navegación" onClick={() => setMobileNav(false)}/>}
-    <aside className={`sidebar ${mobileNav ? 'is-open' : ''}`} aria-label="Biblioteca" inert={isLessonRoute || (narrow && !mobileNav)}>
-      <a className="brand" href="#/" onClick={() => { changeYear(0); graph.current?.fit(); }}><span className="brand-mark"><Network size={22}/></span><span>universo<span className="brand-dot">.</span><small>BIBLIOTECA DE INGENIERÍA</small></span></a>
-      <label className="search-field"><Search size={16}/><input ref={searchInput} value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar en tu universo" aria-label="Buscar asignaturas y clases"/><kbd>⌘ K</kbd></label>
-      {query && <div className="search-results" aria-live="polite"><div className="section-label">{results.length} resultados</div>{results.length ? results.map(r => <button key={r.id} onClick={() => { if(r.subject) selectSubject(r.id); else openLesson(r.id); }}><i style={{background:r.color}}/><span>{r.title}<small>{r.subtitle}</small></span><ArrowUpRight size={14}/></button>) : <p>Sin coincidencias. Prueba con otro nombre o cambia los filtros.</p>}</div>}
-      <div className="section-label library-label">MI BIBLIOTECA <span>01</span></div>
-      <button className={`nav-item ${year === 0 ? 'active' : ''}`} onClick={() => changeYear(0)}><Network size={17}/>Todo el universo<span className="count">11</span></button>
-      <button className={`nav-item ${year === 3 ? 'active' : ''}`} onClick={() => changeYear(3)}><GraduationCap size={18}/>Tercer curso<span className="count">5</span></button>
-      <button className={`nav-item ${year === 4 ? 'active' : ''}`} onClick={() => changeYear(4)}><GraduationCap size={18}/>Cuarto curso<span className="count">6</span></button>
-      <div className="sidebar-line"/>
-      <div className="section-label">ASIGNATURAS <span>{filteredSubjects.length.toString().padStart(2,'0')}</span></div>
-      <nav className="subject-list" aria-label="Asignaturas">{filteredSubjects.map(s => <button key={s.id} className={selectedId === s.id ? 'selected' : ''} onClick={() => selectSubject(s.id)} title={s.name}><i style={{background:s.color}}/><span>{s.name}</span><small>{lessons.filter(l => l.subjectId === s.id).length}</small></button>)}</nav>
-      <div className="sidebar-bottom"><div className="library-total"><BookOpen size={17}/><span>{lessons.length} visualizaciones<small>Un espacio para conectar ideas.</small></span></div><button className="help-button" onClick={() => setModal('help')}><CircleHelp size={16}/>Cómo explorar<ArrowUpRight size={14}/></button><div className="profile"><span className="avatar">L</span><div>Mi espacio de estudio<small>Ingeniería · Biblioteca personal</small></div><span className="status-dot"/></div></div>
+    {indexOpen && <button className="nav-backdrop" aria-label="Cerrar índice" onClick={() => setIndexOpen(false)}/>}
+    <aside className={'sidebar ' + (indexOpen ? 'is-open' : '')} aria-label="Índice de asignaturas" inert={isLessonRoute || !indexOpen}
+      onKeyDown={event => {
+        if (event.key !== 'Tab') return;
+        const items = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), a[href]')].filter(el => el.getClientRects().length);
+        const first = items[0], last = items.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }}>
+      <div className="index-heading"><div><div className="technical-label">BIBLIOTECA / ÍNDICE</div><h2>Tus asignaturas.</h2></div><button ref={indexClose} className="icon-button" aria-label="Cerrar índice de asignaturas" onClick={() => setIndexOpen(false)}><X size={20}/></button></div>
+      <div className="index-courses">
+        <button className={'nav-item ' + (year === 0 ? 'active' : '')} onClick={() => changeYear(0)}><Network size={18}/>Todas las asignaturas<span>{subjects.length}</span></button>
+        <button className={'nav-item ' + (year === 3 ? 'active' : '')} onClick={() => changeYear(3)}><GraduationCap size={18}/>Tercer curso<span>5</span></button>
+        <button className={'nav-item ' + (year === 4 ? 'active' : '')} onClick={() => changeYear(4)}><GraduationCap size={18}/>Cuarto curso<span>6</span></button>
+      </div>
+      <div className="section-label">SELECCIONAR ASIGNATURA <span>{filteredSubjects.length.toString().padStart(2, '0')}</span></div>
+      <nav className="subject-list" aria-label="Asignaturas">{filteredSubjects.map(s => <button key={s.id} className={selectedId === s.id ? 'selected' : ''} onClick={() => selectSubject(s.id)}><i style={{background:s.color}}/><span>{s.name}<small>{s.year}.º curso · {s.abbreviation}</small></span><span className="subject-count">{lessons.filter(l => l.subjectId === s.id).length}</span></button>)}</nav>
+      <div className="index-footer"><BookOpen size={18}/><span>{lessons.length} {lessons.length === 1 ? 'clase publicada' : 'clases publicadas'}<small>Una biblioteca que crece contigo.</small></span></div>
     </aside>
-    <main id="workspace" className="workspace" tabIndex={-1} inert={isLessonRoute}>
-      <header className="topbar"><button className="icon-button mobile-toggle" onClick={() => setMobileNav(true)} aria-label="Abrir navegación"><SlidersHorizontal size={19}/></button><div className="breadcrumb">Mi biblioteca <ChevronRight size={13}/><span>Universo de asignaturas</span></div><div className="topbar-actions"><span className="local-badge"><i/>Tu conocimiento, conectado</span><button className="icon-button" aria-label={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'} title="Cambiar tema" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}</button><button className="icon-button" aria-label="Ayuda" onClick={() => setModal('help')}><CircleHelp size={18}/></button></div></header>
-      <section className="map-heading"><div><div className="eyebrow"><span/> EL MAPA DE TU CONOCIMIENTO</div><h1>Todo empieza con una conexión<span>.</span></h1><p>Explora tus asignaturas. Construye tu universo, clase a clase.</p></div><button className="add-button" onClick={() => setModal('add')}><Plus size={16}/>Añadir visualización</button></section>
-      <div className="map-toolbar"><div className="segmented" aria-label="Filtrar por curso">{([0,3,4] as const).map(y => <button aria-pressed={year === y} className={year === y ? 'active' : ''} key={y} onClick={() => changeYear(y)}>{y ? `${y}.º curso` : 'Todo el universo'}</button>)}</div><div className="filter-select"><SlidersHorizontal size={14}/><select aria-label="Filtrar por tipo de contenido" value={category} onChange={e => setCategory(e.target.value)}><option value="all">Todo el contenido</option>{Object.entries(categories).map(([v,label]) => <option key={v} value={v}>{label}</option>)}</select><ChevronDown size={13}/></div></div>
-      <section className={`map-area ${activeSubject ? 'has-selection' : ''}`} aria-label="Mapa interactivo de asignaturas">
-        <div className="map-corner top-left"/><div className="map-corner bottom-right"/>
-        <div className="map-caption"><span className="tiny-cross">+</span> UNIVERSO / {year ? `${year}.º CURSO` : 'VISTA GENERAL'}</div>
-        <UniverseGraph ref={graph} subjects={filteredSubjects} lessons={filteredLessons} selectedId={selectedId} highlightedIds={query.trim() ? results.map(r => r.id) : null} onSelectSubject={selectSubject} onOpenLesson={openLesson} onZoomChange={setZoom}/>
-        {!lessons.length && !activeSubject && <div className="first-lesson-note"><span className="note-icon"><Plus size={15}/></span><div>Tu universo está listo para crecer.<small>Selecciona un planeta para explorar su asignatura.</small></div></div>}
-        {category !== 'all' && !filteredLessons.length && <div className="filter-empty" role="status">Todavía no hay {categories[category as Category].toLowerCase()} en este curso.</div>}
-        {activeSubject && <aside className="subject-panel" aria-label={`Detalles de ${activeSubject.name}`}><div className="panel-top"><span className="section-label">ASIGNATURA / {activeSubject.year}.º CURSO</span><button className="icon-button" aria-label="Cerrar asignatura" onClick={() => setSelectedId(null)}><X size={17}/></button></div><div className="panel-planet" style={{'--planet':activeSubject.color} as React.CSSProperties}>{activeSubject.abbreviation}</div><h2>{activeSubject.name}</h2><div className="panel-meta"><i style={{background:activeSubject.color}}/>{activeLessons.length} {activeLessons.length === 1 ? 'visualización disponible' : 'visualizaciones disponibles'}</div><div className="sidebar-line"/>{activeLessons.length ? <div className="lesson-list">{activeLessons.map(l => <button key={l.id} onClick={() => openLesson(l.id)}><span>{l.title}<small>{l.description}</small></span><ArrowUpRight size={16}/></button>)}</div> : <div className="empty-subject"><BookOpen size={25}/><h3>Un mundo por descubrir</h3><p>{category === 'all' ? 'Aquí aparecerán las clases y visualizaciones que añadas a esta asignatura.' : 'No hay clases de este tipo. Puedes cambiar el filtro para ver las demás.'}</p><button onClick={() => setModal('add')}>Añadir la primera visualización<ArrowUpRight size={15}/></button></div>}</aside>}
-        <div className="map-legend"><span><i className="warm"/>Tercer curso</span><span><i className="cool"/>Cuarto curso</span><span className="legend-separator"/><span><i className="satellite"/>Visualización</span></div>
-        <div className="zoom-controls"><button aria-label="Alejar" onClick={() => graph.current?.zoomBy(0.8)}><Minus size={17}/></button><span>{Math.round(zoom*100)}%</span><button aria-label="Acercar" onClick={() => graph.current?.zoomBy(1.25)}><Plus size={17}/></button><div/><button aria-label="Ajustar universo a la pantalla" title="Ajustar a pantalla" onClick={() => {setSelectedId(null); graph.current?.fit();}}><Maximize size={16}/></button></div>
-      </section>
-      <footer className="map-footer"><span><Crosshair size={13}/> Arrastra para explorar <b>·</b> Desliza para acercar <b>·</b> Selecciona un planeta</span><span>{filteredSubjects.length} asignaturas <b>/</b> {filteredLessons.length} visualizaciones</span></footer>
-    </main>
-    <dialog ref={dialog} className="info-dialog" onCancel={() => setModal(null)} onClick={e => {if(e.target === e.currentTarget) setModal(null);}}><button className="icon-button dialog-close" aria-label="Cerrar" onClick={() => setModal(null)}><X size={20}/></button>{modal === 'help' ? <><div className="eyebrow">GUÍA DE EXPLORACIÓN</div><h2>Encuentra tu próxima conexión.</h2><p>Elige una asignatura para enfocarla y consultar sus clases. Cada visualización será un pequeño satélite conectado a su planeta.</p><ul><li>Arrastra el fondo para desplazarte. Usa la rueda o dos dedos para hacer zoom.</li><li>Tabulador y Enter permiten seleccionar los planetas y las clases. Las flechas desplazan el mapa cuando tiene el foco; + y − cambian el zoom.</li><li>Busca por nombre o abrevia una asignatura. Los filtros delimitan el curso y el tipo de contenido.</li><li>El botón de encuadre recupera la vista completa. El mapa se queda quieto al alcanzar el equilibrio.</li></ul><button className="add-button" onClick={() => setModal(null)}>Volver a explorar<ArrowUpRight size={16}/></button></> : <><div className="eyebrow">UNA BIBLIOTECA QUE CRECE CONTIGO</div><h2>Una clase más. El mismo universo.</h2><p>Las nuevas visualizaciones se incorporan al repositorio de este portal. Conservan sus controles, recursos y una dirección propia.</p><div className="prompt-example">“Añade esta visualización a Ingeniería Térmica. Se llama [nombre]. Súbela al universo.”</div><p>Comparte la carpeta completa de tu programa con Codex y el nombre de la asignatura. Codex lo integrará, comprobará y publicará cuando tenga acceso al repositorio.</p><p className="muted">No se suben archivos desde esta pantalla. La incorporación se realiza en el proyecto y GitHub publica la actualización.</p><button className="add-button" onClick={() => setModal(null)}>Entendido<Check size={16}/></button></>}</dialog>
-    {isLessonRoute && <section className="lesson-viewer" aria-label={lesson?.title ?? 'Clase no encontrada'}><header><a ref={viewerBack} className="back-link" href="#/"><ArrowLeft size={18}/><span>Volver al universo</span></a><div className="viewer-title"><small>{lessonSubject?.name ?? 'Universo de asignaturas'}</small><strong>{lesson?.title ?? 'Clase no encontrada'}</strong></div>{lesson && <div className="viewer-actions"><button className="icon-button" aria-label="Copiar enlace de la clase" title="Copiar enlace" onClick={copyLink}>{copied ? <Check size={18}/> : <Copy size={18}/>}</button><a className="icon-button" href={`${import.meta.env.BASE_URL}${lesson.path}`} target="_blank" rel="noopener noreferrer" title="Abrir programa en una pestaña" aria-label="Abrir programa en una pestaña"><ExternalLink size={18}/></a></div>}</header>{lesson ? <iframe key={lesson.id} title={lesson.title} src={`${import.meta.env.BASE_URL}${lesson.path}`} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals" allow="fullscreen"/> : <div className="missing-lesson"><BookOpen size={35}/><h1>Esta clase no está en el universo.</h1><p>Comprueba el enlace o vuelve al mapa para encontrar una visualización.</p><a className="add-button" href="#/">Explorar asignaturas<ArrowUpRight size={16}/></a></div>}</section>}
+    <div className="page-content" inert={isLessonRoute || indexOpen}>
+      <header className="topbar"><div className="topbar-inner">
+        <a className="brand" href="#/" onClick={() => { changeYear(0); graph.current?.fit(); }}><span className="brand-mark"><Network size={24} strokeWidth={1.3}/></span><span>universo<span className="brand-dot">.</span><small>BIBLIOTECA DE INGENIERÍA</small></span></a>
+        <nav className="header-actions" aria-label="Navegación principal">
+          <button ref={indexButton} className="text-button" onClick={() => setIndexOpen(true)} aria-expanded={indexOpen}><List size={18}/><span>Índice</span></button>
+          <button className="text-button guide-button" onClick={() => setModal('help')} aria-label="Guía de exploración"><CircleHelp size={18}/><span>Guía</span></button>
+          <button className="text-button theme-button" aria-label={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}<span>{theme === 'dark' ? 'Tema claro' : 'Tema oscuro'}</span></button>
+        </nav>
+      </div></header>
+      <main id="workspace" className="workspace" tabIndex={-1}>
+        <section className="map-heading">
+          <div><div className="eyebrow">ESPACIO DE ESTUDIO / INGENIERÍA</div><h1>Universo de<br/>asignaturas<span>.</span></h1></div>
+          <div className="hero-description"><p>Un mapa para explorar tus clases<br className="desktop-break"/> y conectar lo que aprendes.</p><div className="hero-stats"><span>{subjects.length} asignaturas</span><span>{lessons.length} {lessons.length === 1 ? 'clase publicada' : 'clases publicadas'}</span></div><button className="add-button" onClick={() => setModal('add')}><Plus size={18}/>Añadir visualización</button></div>
+        </section>
+        <section className="atlas-panel" aria-label="Biblioteca interactiva">
+          <div className="figure-heading"><span>FIG. 01</span><span>MAPA DE ASIGNATURAS</span><span className="figure-view">{year ? year + '.º CURSO' : 'VISTA GENERAL'}</span></div>
+          <div className="map-toolbar">
+            <div className="search-group"><label htmlFor="universe-search" className="field-label">Buscar en la biblioteca</label><div className="search-field"><Search size={18}/><input id="universe-search" ref={searchInput} value={query} onChange={e => setQuery(e.target.value)} placeholder="Asignatura, clase o etiqueta…" aria-label="Buscar asignaturas y clases" aria-controls="search-results" aria-expanded={!!query}/>{query ? <button className="search-clear" aria-label="Borrar búsqueda" onClick={() => {setQuery(''); searchInput.current?.focus();}}><X size={16}/></button> : <kbd>Ctrl K</kbd>}</div>
+            {query && <div id="search-results" className="search-results" aria-live="polite"><div className="section-label">{results.length} RESULTADOS</div>{results.length ? results.map(r => <button key={r.id} onClick={() => { if(r.subject) selectSubject(r.id); else openLesson(r.id); }}><i style={{background:r.color}}/><span>{r.title}<small>{r.subtitle}</small></span><ArrowUpRight size={17}/></button>) : <p>Sin coincidencias. Prueba otro nombre o cambia los filtros.</p>}</div>}</div>
+            <div className="course-group"><span className="field-label">Curso</span><div className="segmented" aria-label="Filtrar por curso">{([0,3,4] as const).map(y => <button aria-pressed={year === y} className={year === y ? 'active' : ''} key={y} onClick={() => changeYear(y)}>{y ? y + '.º curso' : 'Todos'}</button>)}</div></div>
+            <div className="content-group"><label htmlFor="content-filter" className="field-label">Tipo de contenido</label><div className="filter-select"><select id="content-filter" aria-label="Filtrar por tipo de contenido" value={category} onChange={e => setCategory(e.target.value)}><option value="all">Todo el contenido</option>{Object.entries(categories).map(([v,label]) => <option key={v} value={v}>{label}</option>)}</select><ChevronDown size={16}/></div></div>
+          </div>
+          <section ref={mapArea} className={'map-area ' + (activeSubject ? 'has-selection' : '')} aria-label="Mapa interactivo de asignaturas">
+            <div className="map-corner top-left"/><div className="map-corner top-right"/><div className="map-corner bottom-left"/><div className="map-corner bottom-right"/>
+            <UniverseGraph ref={graph} subjects={filteredSubjects} lessons={filteredLessons} selectedId={selectedId} highlightedIds={query.trim() ? results.map(r => r.id) : null} onSelectSubject={selectSubject} onOpenLesson={openLesson} onZoomChange={setZoom}/>
+            {category !== 'all' && !filteredLessons.length && <div className="filter-empty" role="status">Todavía no hay {categories[category as Category].toLowerCase()} en este curso.</div>}
+            {activeSubject && <aside className="subject-panel" aria-label={'Detalles de ' + activeSubject.name}><div className="panel-top"><span className="technical-label">ASIGNATURA / {activeSubject.year}.º CURSO</span><button className="icon-button" aria-label="Cerrar asignatura" onClick={() => setSelectedId(null)}><X size={20}/></button></div><div className="panel-planet" style={{'--planet':activeSubject.color} as React.CSSProperties}>{activeSubject.abbreviation}</div><h2>{activeSubject.name}</h2><div className="panel-meta">{activeLessons.length} {activeLessons.length === 1 ? 'clase disponible' : 'clases disponibles'}</div>
+              {activeLessons.length ? <div className="lesson-list">{activeLessons.map(l => <button key={l.id} onClick={() => openLesson(l.id)}><span><small className="lesson-date">{formatDate(l.date)}{l.category ? ' / ' + categories[l.category] : ''}</small>{l.title}<small>{l.description}</small></span><ArrowUpRight size={18}/></button>)}</div> : <div className="empty-subject"><BookOpen size={24}/><h3>El siguiente capítulo.</h3><p>{category === 'all' ? 'Las clases que añadas a esta asignatura aparecerán aquí, conectadas a su planeta.' : 'No hay clases de este tipo en la asignatura. Cambia el filtro para consultar el resto.'}</p><button onClick={() => setModal('add')}>Añadir una visualización<ArrowUpRight size={17}/></button></div>}
+            </aside>}
+            <div className="zoom-controls"><button aria-label="Alejar" onClick={() => graph.current?.zoomBy(0.8)}><Minus size={18}/></button><output aria-label="Nivel de zoom">{Math.round(zoom*100)}%</output><button aria-label="Acercar" onClick={() => graph.current?.zoomBy(1.25)}><Plus size={18}/></button><span/><button aria-label="Ajustar universo a la pantalla" title="Ajustar a pantalla" onClick={() => {setSelectedId(null); graph.current?.fit();}}><Maximize size={18}/></button></div>
+          </section>
+          <div className="figure-footer"><div className="map-legend"><span><i className="legend-planet"/>Asignatura</span><span><i className="legend-satellite"/>Clase</span><span className="legend-separator"/><span><i className="warm"/>3.º curso</span><span><i className="cool"/>4.º curso</span></div><div className="figure-count"><strong>{filteredSubjects.length.toString().padStart(2,'0')}</strong> ASIGNATURAS <span>/</span> <strong>{filteredLessons.length.toString().padStart(2,'0')}</strong> {filteredLessons.length === 1 ? 'CLASE' : 'CLASES'}</div></div>
+        </section>
+        <div className="map-footer"><span><Crosshair size={15}/>Arrastra el lienzo para explorar. Selecciona un planeta para ver sus clases.</span><button onClick={() => setModal('help')}>Cómo explorar<ArrowUpRight size={16}/></button></div>
+        {latestLesson && <section className="latest-lesson" aria-label="Última incorporación"><div className="technical-label">ÚLTIMA INCORPORACIÓN<span>{formatDate(latestLesson.date)}</span></div><button onClick={() => openLesson(latestLesson.id)}><span><small>{subjects.find(s => s.id === latestLesson.subjectId)?.name}</small>{latestLesson.title}</span><ArrowUpRight size={22}/></button></section>}
+        <footer className="page-footer"><span>UNIVERSO / BIBLIOTECA PERSONAL</span><span>El conocimiento se construye, clase a clase.</span></footer>
+      </main>
+    </div>
+    <dialog ref={dialog} className="info-dialog" onCancel={() => setModal(null)} onClick={e => {if(e.target === e.currentTarget) setModal(null);}}><button className="icon-button dialog-close" aria-label="Cerrar" onClick={() => setModal(null)}><X size={20}/></button>{modal === 'help' ? <><div className="eyebrow">GUÍA / EXPLORAR EL MAPA</div><h2>Cada clase,<br/>una conexión.</h2><p>Los planetas son tus asignaturas. Los satélites son clases y visualizaciones conectadas a ellas.</p><ul><li>Selecciona un planeta para consultar sus clases, o abre el índice de asignaturas.</li><li>Arrastra el lienzo para desplazarte. Usa la rueda o dos dedos para ampliar.</li><li>Busca por nombre, abreviatura o etiqueta y filtra por curso o contenido.</li><li>Con el mapa enfocado, las flechas desplazan el lienzo, + y − cambian el zoom e Inicio recupera la vista completa.</li></ul><button className="add-button" onClick={() => setModal(null)}>Volver al mapa<ArrowUpRight size={17}/></button></> : <><div className="eyebrow">BIBLIOTECA / AÑADIR UNA CLASE</div><h2>Un nuevo capítulo.</h2><p>Cada visualización conserva su programa completo y una dirección propia dentro de este mismo universo.</p><div className="prompt-example">“Añade esta visualización a Ingeniería Térmica. Se llama [nombre]. Súbela al universo.”</div><p>Comparte con Codex el archivo o la carpeta completa y la asignatura. Lo incorporará al portal y comprobará su funcionamiento.</p><p className="muted">La incorporación se realiza en el repositorio. Esta pantalla explica el proceso y no carga archivos.</p><button className="add-button" onClick={() => setModal(null)}>Entendido<Check size={17}/></button></>}</dialog>
+    {isLessonRoute && <section className="lesson-viewer" aria-label={lesson?.title ?? 'Clase no encontrada'}><header><a ref={viewerBack} className="back-link" href="#/" aria-label="Volver al universo"><ArrowLeft size={18}/><span>Volver al universo</span></a><div className="viewer-title"><small>{lessonSubject?.name ?? 'Universo de asignaturas'}</small><strong>{lesson?.title ?? 'Clase no encontrada'}</strong></div>{lesson && <div className="viewer-actions"><button className="icon-button" aria-label="Copiar enlace de la clase" title="Copiar enlace" onClick={copyLink}>{copied ? <Check size={18}/> : <Copy size={18}/>}</button><a className="icon-button" href={import.meta.env.BASE_URL + lesson.path} target="_blank" rel="noopener noreferrer" title="Abrir programa en una pestaña" aria-label="Abrir programa en una pestaña"><ExternalLink size={18}/></a></div>}</header>{lesson ? <iframe key={lesson.id} title={lesson.title} src={import.meta.env.BASE_URL + lesson.path} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals" allow="fullscreen"/> : <div className="missing-lesson"><BookOpen size={35}/><h1>Clase no encontrada.</h1><p>Comprueba el enlace o vuelve al mapa para encontrar una visualización.</p><a className="add-button" href="#/">Explorar asignaturas<ArrowUpRight size={17}/></a></div>}</section>}
   </div>;
 }

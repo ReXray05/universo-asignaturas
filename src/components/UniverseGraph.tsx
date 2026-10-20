@@ -44,13 +44,19 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
     const lines = wrapLabel(name, scale < 0.65 ? 22 : 25);
     return {
       lines,
-      font: Math.max(17, 11 / scale),
-      metaFont: Math.max(12, 9 / scale),
-      abbreviationFont: Math.max(18, 11 / scale),
-      firstLine: 39 + Math.max(28, 14 / scale),
-      lineHeight: Math.max(21, 14 / scale),
-      metaGap: Math.max(22, 16 / scale),
+      font: Math.max(18, 14 / scale),
+      metaFont: Math.max(14, 12 / scale),
+      abbreviationFont: Math.max(18, 13 / scale),
+      firstLine: Math.max(39, 16 / scale) + Math.max(28, 20 / scale),
+      lineHeight: Math.max(22, 17 / scale),
+      metaGap: Math.max(24, 19 / scale),
     };
+  };
+  const subjectLabelY = (node: GraphNode, scale: number, metrics: ReturnType<typeof labelMetrics>) => {
+    const halfWidth = Math.max(...metrics.lines.map(line => line.length)) * metrics.font * .55 / 2;
+    const bottom = metrics.firstLine + (metrics.lines.length - 1) * metrics.lineHeight + metrics.metaGap + metrics.metaFont;
+    const satelliteBelow = nodes.some(other => other.kind === 'lesson' && Math.abs(other.x - node.x) < halfWidth + 16 && other.y > node.y + 39 && other.y < node.y + bottom + 16);
+    return satelliteBelow ? -Math.max(39, 16 / scale) - Math.max(28, 20 / scale) - (metrics.lines.length - 1) * metrics.lineHeight - metrics.metaGap : metrics.firstLine;
   };
 
   const applyTransform = useCallback((target: ZoomTransform, animate = true) => {
@@ -82,9 +88,11 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
       const bounds = nodes.map(node => {
         if (node.kind === 'lesson') return { left: node.x - 16, right: node.x + 16, top: node.y - 16, bottom: node.y + 16 };
         const metrics = labelMetrics(scale, node.subject.name);
+        const baseline = subjectLabelY(node, scale, metrics);
         const width = compact ? 52 : Math.max(55, Math.max(...metrics.lines.map(line => line.length)) * metrics.font * 0.55 / 2);
-        const bottom = compact ? 55 : metrics.firstLine + (metrics.lines.length - 1) * metrics.lineHeight + metrics.metaGap + metrics.metaFont * 0.3;
-        return { left: node.x - width, right: node.x + width, top: node.y - 55, bottom: node.y + bottom };
+        const bottom = compact ? 55 : Math.max(55, baseline + (metrics.lines.length - 1) * metrics.lineHeight + metrics.metaGap + metrics.metaFont * 0.3);
+        const top = compact ? -55 : Math.min(-55, baseline - metrics.font);
+        return { left: node.x - width, right: node.x + width, top: node.y + top, bottom: node.y + bottom };
       });
       minX = Math.min(...bounds.map(bound => bound.left)); maxX = Math.max(...bounds.map(bound => bound.right));
       minY = Math.min(...bounds.map(bound => bound.top)); maxY = Math.max(...bounds.map(bound => bound.bottom));
@@ -96,10 +104,11 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
   const focus = useCallback((id: string) => {
     const node = nodes.find(item => item.id === id);
     if (!node) return;
+    layerRef.current?.querySelector<SVGGElement>('[data-node-key="' + node.key + '"]')?.focus({preventScroll:true});
     const scale = Math.min(1.7, Math.max(0.75, size.width / 470));
     // Leave room for the subject details beside or below the focused planet.
-    const centerX = size.width > 650 ? (size.width - 300) / 2 : size.width / 2;
-    const centerY = size.width > 650 ? size.height / 2 : size.height * 0.3;
+    const centerX = size.width > 650 ? (size.width - 350) / 2 : size.width / 2;
+    const centerY = size.width > 650 ? size.height / 2 : size.height * 0.28;
     applyTransform(zoomIdentity.translate(centerX - node.x * scale, centerY - (node.y + 20) * scale).scale(scale));
   }, [nodes, size, applyTransform]);
 
@@ -175,11 +184,12 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
         else if (event.key === 'Home') { event.preventDefault(); fit(); }
       }}>
       <defs>
-        {subjects.map(subject => <radialGradient key={subject.id} id={`${prefix}-${subject.id}`} cx="32%" cy="25%" r="80%">
-          <stop offset="0%" stopColor={subject.color} stopOpacity="0.78" />
-          <stop offset="60%" stopColor={subject.color} stopOpacity="0.29" />
-          <stop offset="100%" stopColor={subject.color} stopOpacity="0.1" />
-        </radialGradient>)}
+        {subjects.map(subject => <linearGradient key={subject.id} id={`${prefix}-${subject.id}`} x1="15%" y1="10%" x2="85%" y2="90%">
+          <stop offset="0%" stopColor={`color-mix(in srgb, ${subject.color} 12%, var(--planet-top))`} />
+          <stop offset="48%" stopColor={`color-mix(in srgb, ${subject.color} 18%, var(--planet-middle))`} />
+          <stop offset="78%" stopColor={`color-mix(in srgb, ${subject.color} 24%, var(--planet-lower))`} />
+          <stop offset="100%" stopColor={`color-mix(in srgb, ${subject.color} 28%, var(--planet-bottom))`} />
+        </linearGradient>)}
       </defs>
       <g ref={layerRef}>
         <g className="universe-links" aria-hidden="true">
@@ -197,9 +207,13 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
           const dimmed = highlighted !== null && !matched;
           const metrics = labelMetrics(zoomScale, node.subject.name);
           const lines = isSubject ? metrics.lines : [];
-          const showName = !compact || active || matched;
+          // Small screens use the index, search results and subject sheet for full names.
+          const showName = !compact;
           const count = counts.get(node.id) || 0;
-          return <g key={node.key} transform={`translate(${node.x}, ${node.y})`} className={`universe-node ${isSubject ? 'planet-node' : 'lesson-node'}${active ? ' is-active' : ''}${dimmed ? ' is-dimmed' : ''}${matched ? ' is-match' : ''}`} tabIndex={0} role="button"
+          const labelBaseline = isSubject ? subjectLabelY(node, zoomScale, metrics) : 0;
+          const visualRadius = Math.max(39, 16 / zoomScale);
+          const satelliteRadius = Math.max(8, 5 / zoomScale);
+          return <g key={node.key} data-node-key={node.key} transform={`translate(${node.x}, ${node.y})`} className={`universe-node ${isSubject ? 'planet-node' : 'lesson-node'}${active ? ' is-active' : ''}${dimmed ? ' is-dimmed' : ''}${matched ? ' is-match' : ''}`} tabIndex={0} role="button"
             aria-label={isSubject ? `${node.subject.name}. ${node.subject.year}.º curso. ${count} ${count === 1 ? 'clase' : 'clases'}. Enfocar asignatura.` : `${node.lesson!.title}. ${node.subject.name}. Abrir visualización.`}
             onMouseEnter={() => showTooltip(node)} onMouseLeave={() => { setHovered(null); setTooltip(null); }}
             onFocus={() => showTooltip(node)} onBlur={() => { setHovered(null); setTooltip(null); }}
@@ -208,23 +222,23 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
               if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(node); }
               if (event.key === 'Escape') { setHovered(null); setTooltip(null); }
             }}>
-            <title>{isSubject ? `${node.subject.name} · ${count} clases` : `${node.lesson!.title}${node.lesson!.description ? ` — ${node.lesson!.description}` : ''}`}</title>
+            <title>{isSubject ? `${node.subject.name} · ${count} ${count === 1 ? 'clase' : 'clases'}` : `${node.lesson!.title}${node.lesson!.description ? ` — ${node.lesson!.description}` : ''}`}</title>
             {isSubject ? <>
-              <circle className="node-hit-area" r="56" fill="transparent" />
-              <circle className="planet-focus-ring" r="49" fill="none" stroke={node.subject.color} strokeWidth="1" />
-              <circle className="planet-halo" r="43" fill={node.subject.color} opacity="0.035" />
-              <circle r="39" fill={`url(#${prefix}-${node.id})`} stroke={node.subject.color} strokeOpacity="0.65" strokeWidth="1" />
-              <ellipse className="planet-contour" rx="37" ry="13" transform="rotate(-28)" fill="none" stroke={node.subject.color} strokeOpacity="0.18" strokeWidth="0.7" />
-              <text className="planet-abbreviation" fill={node.subject.color} style={{ fontSize: metrics.abbreviationFont }} textAnchor="middle" dominantBaseline="central">{node.subject.abbreviation}</text>
+              <circle className="node-hit-area" r={Math.max(56, 22 / zoomScale)} fill="transparent" />
+              <circle className="planet-focus-ring" r={visualRadius + 7 / zoomScale} fill="none" strokeWidth="1" />
+              <circle className="planet-body" r={visualRadius} fill={`url(#${prefix}-${node.id})`} stroke={`color-mix(in srgb, ${node.subject.color} 60%, var(--graph-ink))`} strokeWidth="1" />
+              <ellipse className="planet-contour" rx={visualRadius * .95} ry={visualRadius * .34} transform="rotate(-28)" fill="none" strokeWidth="0.6" />
+              <ellipse className="planet-contour meridian" rx={visualRadius * .34} ry={visualRadius * .95} transform="rotate(-28)" fill="none" strokeWidth="0.6" />
+              <text className="planet-abbreviation" style={{ fontSize: metrics.abbreviationFont }} textAnchor="middle" dominantBaseline="central">{node.subject.abbreviation}</text>
               {showName && <>
-                <text className="planet-name" style={{ fontSize: metrics.font }} textAnchor="middle" y={metrics.firstLine}>{lines.map((line, index) => <tspan key={index} x="0" dy={index ? metrics.lineHeight : 0}>{line}</tspan>)}</text>
-                <text className="planet-meta" style={{ fontSize: metrics.metaFont }} textAnchor="middle" y={metrics.firstLine + (lines.length - 1) * metrics.lineHeight + metrics.metaGap}>{node.subject.year}.º curso <tspan className="meta-separator"> · </tspan>{count} {count === 1 ? 'clase' : 'clases'}</text>
+                <text className="planet-name" style={{ fontSize: metrics.font }} textAnchor="middle" y={labelBaseline}>{lines.map((line, index) => <tspan key={index} x="0" dy={index ? metrics.lineHeight : 0}>{line}</tspan>)}</text>
+                <text className="planet-meta" style={{ fontSize: metrics.metaFont }} textAnchor="middle" y={labelBaseline + (lines.length - 1) * metrics.lineHeight + metrics.metaGap}>{node.subject.year}.º curso <tspan className="meta-separator"> · </tspan>{count} {count === 1 ? 'clase' : 'clases'}</text>
               </>}
             </> : <>
-              <circle className="node-hit-area" r="19" fill="transparent" />
-              <circle className="lesson-focus-ring" r="14" fill="none" stroke={node.subject.color} opacity="0.5" />
-              <circle r="8" fill={node.subject.color} fillOpacity="0.8" stroke={node.subject.color} strokeWidth="1" />
-              <circle r="2" cx="-2" cy="-2" fill="white" fillOpacity="0.6" />
+              <circle className="node-hit-area" r={Math.max(19, 22 / zoomScale)} fill="transparent" />
+              <circle className="lesson-focus-ring" r={satelliteRadius + 5 / zoomScale} fill="none" />
+              <circle className="satellite-body" r={satelliteRadius} strokeWidth="1" />
+              <circle r={satelliteRadius * .3} className="satellite-center" />
             </>}
           </g>;
         })}
