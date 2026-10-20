@@ -1,0 +1,26 @@
+.universe-graph { position: relative; width: 100%; height: 100%; min-height: 300px; overflow: hidden; }
+.universe-canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.universe-canvas:active { cursor: grabbing; }
+.universe-canvas:focus-visible { outline: 1px solid var(--graph-muted, #777f7d); outline-offset: -5px; border-radius: 5px; }
+.universe-node { cursor: pointer; outline: none; transition: opacity 160ms ease; }
+.universe-node.is-dimmed { opacity: .16; }
+.universe-node.is-active { opacity: 1; }
+.planet-focus-ring, .lesson-focus-ring { opacity: 0; transition: opacity 160ms ease; }
+.universe-node.is-active .planet-focus-ring { opacity: .4; }
+.universe-node.is-match .planet-focus-ring, .universe-node:focus-visible .planet-focus-ring, .universe-node:focus-visible .lesson-focus-ring, .universe-node.is-match .lesson-focus-ring { opacity: .85; stroke-dasharray: 3 4; }
+.universe-node.is-active .lesson-focus-ring { opacity: .65; }
+.planet-abbreviation { font-family: inherit; font-size: 18px; font-weight: 600; letter-spacing: .03em; }
+.planet-name { fill: var(--graph-text, #d9ddd9); font-family: inherit; font-size: 17px; font-weight: 450; letter-spacing: -.015em; }
+.planet-meta { fill: var(--graph-muted, #777f7d); font-family: inherit; font-size: 12px; font-weight: 400; letter-spacing: .025em; }
+.universe-node.is-active .planet-name { fill: var(--graph-text-active, #fff); }
+.universe-node.is-active .planet-meta { fill: var(--graph-text, #d9ddd9); }
+.universe-links line { transition: opacity 160ms ease; }
+.universe-tooltip { position: absolute; z-index: 10; width: 260px; padding: 15px 17px; pointer-events: none; border: 1px solid var(--border, #343a37); border-radius: 10px; background: var(--surface, #1a1e1c); color: var(--graph-text, #d9ddd9); box-shadow: 0 8px 30px #0003; font-size: 13px; }
+.universe-tooltip strong { display: block; font-weight: 550; font-size: 15px; margin-top: 6px; overflow-wrap: anywhere; }
+.tooltip-subject { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.universe-tooltip p { margin: 7px 0; line-height: 1.5; color: var(--graph-muted, #969e99); }
+.tooltip-hint { display: block; margin-top: 10px; font-size: 11px; opacity: .6; }
+.graph-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--graph-muted, #969e99); text-align: center; padding: 30px; pointer-events: none; }
+[data-theme="light"] .universe-graph { --graph-text: #39453e; --graph-text-active: #18291f; --graph-muted: #7b857c; }
+[data-theme="light"] .planet-abbreviation { fill: #34483f; }
+@media (prefers-reduced-motion: reduce) { .universe-node, .planet-focus-ring, .lesson-focus-ring, .universe-links line { transition: none; } }
