@@ -68,6 +68,17 @@ test('updates require an explicit stable id and retain a recoverable backup', as
   assert.equal(await readFile(path.join(root, 'public', updated.lesson.path), 'utf8'), '<h1>Versión nueva</h1>');
   assert.deepEqual(await validateProject(root), { subjects: 1, lessons: 1 });
 });
+
+test('incorporation order ignores academic dates and survives updates of older lessons', async t => {
+  const { root, source } = await fixture(t);
+  const first = await addLesson(root, options(source, { date: '2026-10-20' }));
+  const newest = await addLesson(root, options(source, { id: 'tmm-practica', title: 'Práctica sin fecha' }));
+  const registry = () => readFile(path.join(root, 'src/data/lessons.json'), 'utf8').then(JSON.parse);
+  assert.equal((await registry()).at(-1).id, newest.lesson.id);
+  await addLesson(root, options(source, { id: first.lesson.id, update: true, date: '2027-01-01' }));
+  assert.deepEqual((await registry()).map(lesson => lesson.id), [first.lesson.id, newest.lesson.id]);
+  assert.equal((await registry()).at(-1).date, undefined);
+});
 test('validates dates and controlled categories, and catches malformed command arguments', () => {
   const lesson = { id: 'example', subjectId: 'tmm', title: 'Ejemplo', description: '', path: 'lessons/example/index.html' };
   assert.throws(() => validateRecords([subject], [{ ...lesson, date: '2026-02-30' }]), /Fecha inválida/);

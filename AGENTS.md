@@ -50,3 +50,8 @@ Antes de trabajar, localiza este archivo, inspecciona `git remote -v`, la rama y
 - El parallax modifica capas visuales y extremos de conexiones; no escribe posiciones físicas. Se detiene en reposo, se congela durante el arrastre y respeta movimiento reducido/punteros táctiles. No añadas un bucle continuo.
 - La proyección se ensancha en escritorio y se alarga en móvil sin cambiar las coordenadas guardadas. Compensa ambas escalas al arrastrar nodos. Las colisiones deben respetar el nuevo volumen de los planetas.
 - El hub se genera solo con código: sin archivos de imagen, texturas, iluminación/brillo en los planetas, sombras internas o proyectadas, planetas decorativos desenfocados ni estrellas. Conserva el parallax, los once colores y las abreviaturas contrastadas. El panel de asignatura usa el mismo componente GlassSurface que los controles y permite desplazar su contenido.
+
+## Incorporación más reciente y horizonte
+
+- El orden de `lessons.json` representa el orden de incorporación: añadir al final y actualizar en su posición. «Última incorporación» usa la última entrada, nunca la fecha académica opcional. No reordenes el registro por título ni fecha.
+- El fondo de horizonte luminoso es una creación propia en `HorizonBackground.tsx` y `horizon.css`, autorizada tras descartar el componente con licencia. Es SVG en línea, sin imágenes, estrellas ni animación continua; tiene paletas clara y oscura. El horizonte no forma parte de las físicas ni intercepta el puntero. Mantén planos los planetas de asignaturas.

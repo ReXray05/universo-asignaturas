@@ -14,7 +14,9 @@ const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, 
 const readHash = () => { try { return decodeURIComponent(location.hash.slice(1)); } catch { return '/invalid'; } };
 const getStoredTheme = () => { try { return localStorage.getItem('universo-theme') === 'dark' ? 'dark' : 'light'; } catch { return 'light'; } };
 const formatDate = (date?: string | null) => date ? date.split('-').reverse().join('.') : 'Sin fecha';
-const latestLesson = [...lessons].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))[0];
+// The importer appends new lessons and updates existing entries in place.
+// Academic dates are optional and do not describe incorporation order.
+const latestLesson = lessons.at(-1);
 
 export default function App() {
   const graph = useRef<GraphHandle>(null);
@@ -156,7 +158,7 @@ export default function App() {
           <GlassSurface width="auto" height="auto" borderRadius={22} distortionScale={-180} displace={0.5} backgroundOpacity={0.1} className="legend-glass"><div className="figure-footer"><div className="map-legend"><span><i className="legend-planet"/>Asignatura</span><span><i className="legend-satellite"/>Clase</span><span className="legend-separator"/><span><i className="warm"/>3.º curso</span><span><i className="cool"/>4.º curso</span></div><div className="figure-count"><strong>{filteredSubjects.length.toString().padStart(2,'0')}</strong> ASIGNATURAS <span>/</span> <strong>{filteredLessons.length.toString().padStart(2,'0')}</strong> {filteredLessons.length === 1 ? 'CLASE' : 'CLASES'}</div></div></GlassSurface>
         </section>
         <div className="map-footer"><span><Crosshair size={15}/>Arrastra el lienzo para explorar. Selecciona un planeta para ver sus clases.</span><button onClick={() => setModal('help')}>Cómo explorar<ArrowUpRight size={16}/></button></div>
-        {latestLesson && <section className="latest-lesson" aria-label="Última incorporación"><GlassSurface width="100%" height="auto" borderRadius={24} distortionScale={-180} displace={0.5} backgroundOpacity={0.1}><div className="technical-label">ÚLTIMA INCORPORACIÓN<span>{formatDate(latestLesson.date)}</span></div><button onClick={() => openLesson(latestLesson.id)}><span><small>{subjects.find(s => s.id === latestLesson.subjectId)?.name}</small>{latestLesson.title}</span><ArrowUpRight size={22}/></button></GlassSurface></section>}
+        {latestLesson && <section className="latest-lesson" aria-label="Última incorporación"><GlassSurface width="100%" height="auto" borderRadius={24} distortionScale={-180} displace={0.5} backgroundOpacity={0.1}><div className="technical-label">ÚLTIMA INCORPORACIÓN<span>{latestLesson.category ? categories[latestLesson.category] : 'Visualización'}</span></div><button onClick={() => openLesson(latestLesson.id)}><span><small>{subjects.find(s => s.id === latestLesson.subjectId)?.name}</small>{latestLesson.title}</span><ArrowUpRight size={22}/></button></GlassSurface></section>}
         <footer className="page-footer"><span>UNIVERSO / BIBLIOTECA PERSONAL</span><span>El conocimiento se construye, clase a clase.</span></footer>
       </main>
     </div>

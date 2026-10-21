@@ -15,3 +15,9 @@ En el DOM del hub: once cuerpos de planeta, dos satélites, cero imágenes en el
 Se mantienen el parallax relativo, los once colores, la proyección adaptable, el arrastre de nodos, la física y las rutas permanentes. Los archivos de las dos clases conservan sus hashes. Las 19 pruebas y la compilación pasan.
 
 Se aplica desenfoque al fondo refractado del panel para que los nombres ampliados del grafo no compitan con su contenido. Se conserva el mismo componente de cristal y su refracción.
+
+## Horizonte original y última incorporación
+
+- Horizonte vectorial original verificado en claro y oscuro a 1280 × 720 y en móvil a 390 × 844. Sin imágenes ni dependencias nuevas; fondo ajeno a los gestos y a las físicas.
+- Última incorporación muestra la práctica 3 de Ingeniería Térmica. El enlace abre su visor y permite volver al universo. Panel de asignatura de cristal comprobado en móvil. Sin errores de consola.
+- 20 pruebas aprobadas, validación de las 11 asignaturas y las 2 clases, y compilación de producción correctas. Una prueba comprueba el orden acumulativo aunque falte fecha o se actualice una clase antigua con una fecha posterior.

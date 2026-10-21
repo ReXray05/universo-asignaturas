@@ -57,6 +57,8 @@ Opciones:
 npm run lesson:add -- --subject termica --title "Nombre de la clase" --source "./ruta/dist" --id termica-nombre-estable --description "Descripción breve" --date 2026-10-20 --category apuntes-estudio --tags "calor,energía"
 ```
 
+El registro conserva el orden de incorporación: las nuevas clases se añaden al final y las actualizaciones mantienen su posición. «Última incorporación» muestra la última entrada; la fecha académica opcional no determina ese orden.
+
 El comando copia todos los archivos, valida la asignatura y los recursos estáticos, rechaza rutas que salgan de la carpeta y evita identificadores, rutas y títulos duplicados en una misma asignatura. El identificador predeterminado combina la asignatura y el título normalizado. Es permanente: no lo cambies al corregir un título. No se sobreescriben carpetas que no estén registradas. Ejecuta una incorporación cada vez.
 
 Los identificadores de asignatura disponibles son:

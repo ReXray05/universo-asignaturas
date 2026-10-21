@@ -6,6 +6,7 @@ import { createLayout, wrapLabel, planetRadius, relaxLayout, savePositions, type
 import { attachMapGestures } from '../lib/mapGestures';
 import { subjectDepths } from '../lib/depth';
 import { contrastingInk } from '../lib/colors';
+import HorizonBackground from './HorizonBackground';
 import './graph.css';
 
 export interface GraphHandle { fit(): void; zoomBy(factor: number): void; focus(id: string): void }
@@ -301,7 +302,7 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
   };
 
   return <div className="universe-graph" ref={containerRef}>
-    <div className="space-haze" aria-hidden="true"/>
+    <HorizonBackground/>
     <svg ref={svgRef} className="universe-canvas" width={size.width} height={size.height} tabIndex={0} role="region" aria-label={`Mapa de ${subjects.length} asignaturas y ${lessons.length} clases. Arrastra o usa las flechas para desplazarte. Rueda, más y menos para ampliar. Inicio ajusta el universo.`}
       onKeyDown={event => {
         const directions: Record<string, [number, number]> = { ArrowLeft: [70, 0], ArrowRight: [-70, 0], ArrowUp: [0, 70], ArrowDown: [0, -70] };
