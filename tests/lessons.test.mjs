@@ -81,3 +81,14 @@ test('refuses accidental publication of private environment files', async t => {
   await assert.rejects(addLesson(root, options(source)), /archivos privados/);
   assert.equal(await readFile(path.join(root, 'src/data/lessons.json'), 'utf8'), '[]');
 });
+
+
+test('accepts generated blob downloads while still checking real CSS resources', async t => {
+  const { root, source } = await fixture(t);
+  const html = '<style>body { background: url("assets/image.svg"); }</style><script>const url=URL.createObjectURL(new Blob(["data"])); setTimeout(()=>URL.revokeObjectURL(url),2000);</script>';
+  await writeFile(path.join(source, 'index.html'), html);
+  const result = await addLesson(root, options(source));
+  assert.equal(await readFile(path.join(root, 'public', result.lesson.path), 'utf8'), html);
+  await writeFile(path.join(source, 'index.html'), '<style>body { background: url("missing.svg"); }</style>');
+  await assert.rejects(addLesson(root, options(source, { id: 'missing-css', title: 'Missing CSS' })), /Dependencia no encontrada/);
+});

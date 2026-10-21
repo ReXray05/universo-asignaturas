@@ -12,5 +12,19 @@
       "dos grados de libertad"
     ],
     "date": "2026-10-20"
+  },
+  {
+    "id": "termica-practica-3-brayton",
+    "subjectId": "termica",
+    "title": "Práctica 3: ciclo Brayton simple",
+    "description": "Turbina de gas y ciclo Brayton simple con instalación interactiva, diagramas T–s, curvas de prestaciones, tabla de estados y balances.",
+    "path": "lessons/termica-practica-3-brayton/index.html",
+    "category": "laboratorio",
+    "tags": [
+      "Brayton",
+      "turbina de gas",
+      "práctica 3",
+      "laboratorio"
+    ]
   }
 ]

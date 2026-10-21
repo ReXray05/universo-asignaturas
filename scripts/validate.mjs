@@ -64,7 +64,7 @@ function references(text, extension) {
     }
   }
   if (['.html', '.htm', '.css'].includes(extension)) {
-    for (const match of text.matchAll(/url\(\s*["']?([^\s"')]+)["']?\s*\)/gi)) found.push(match[1]);
+    for (const match of text.matchAll(/\burl\(\s*["']?([^\s"')]+)["']?\s*\)/gi)) found.push(match[1]);
     for (const match of text.matchAll(/@import\s+["']([^"']+)["']/gi)) found.push(match[1]);
   }
   if (['.js', '.mjs', '.html', '.htm'].includes(extension)) {
