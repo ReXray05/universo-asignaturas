@@ -1,11 +1,12 @@
 .horizon-background {
-  --horizon-sky-top: #f1f2f7;
-  --horizon-sky-bottom: #e5e8f2;
-  --horizon-cool: #8e9cdb;
-  --horizon-warm: #f0ad92;
-  --horizon-sun: #fff7e8;
-  --horizon-surface-top: #e9edf6;
-  --horizon-surface-bottom: #f5f5f9;
+  --horizon-sky-top: #f3f3f9;
+  --horizon-sky-bottom: #e5e2f5;
+  --horizon-cool: #6658ff;
+  --horizon-warm: #ff8a32;
+  --horizon-sun: #fff5db;
+  --horizon-surface-top: #ede7ee;
+  --horizon-surface-bottom: #f4f2f8;
+  --horizon-star: #ffffff;
   position: absolute;
   inset: 0;
   width: 100%;
@@ -13,11 +14,14 @@
   pointer-events: none;
 }
 [data-theme="dark"] .horizon-background {
-  --horizon-sky-top: #090e1b;
-  --horizon-sky-bottom: #121b35;
-  --horizon-cool: #667cde;
-  --horizon-warm: #df8c91;
-  --horizon-sun: #ffdfc1;
-  --horizon-surface-top: #0c1223;
-  --horizon-surface-bottom: #080d19;
+  --horizon-sky-top: #080b16;
+  --horizon-sky-bottom: #18152f;
+  --horizon-sun: #ffe4b4;
+  --horizon-surface-top: #191323;
+  --horizon-surface-bottom: #080b14;
 }
+.horizon-stars { display: none; }
+[data-theme="dark"] .horizon-stars { display: inline; }
+.horizon-atmosphere { transform: translate(var(--pointer-x,0px),var(--pointer-y,0px)); }
+.horizon-grain { mix-blend-mode: soft-light; }
+@media(prefers-reduced-motion:reduce),(hover:none) { .horizon-atmosphere { transform: none; } }

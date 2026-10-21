@@ -54,4 +54,6 @@ Antes de trabajar, localiza este archivo, inspecciona `git remote -v`, la rama y
 ## Incorporación más reciente y horizonte
 
 - El orden de `lessons.json` representa el orden de incorporación: añadir al final y actualizar en su posición. «Última incorporación» usa la última entrada, nunca la fecha académica opcional. No reordenes el registro por título ni fecha.
-- El fondo de horizonte luminoso es una creación propia en `HorizonBackground.tsx` y `horizon.css`, autorizada tras descartar el componente con licencia. Es SVG en línea, sin imágenes, estrellas ni animación continua; tiene paletas clara y oscura. El horizonte no forma parte de las físicas ni intercepta el puntero. Mantén planos los planetas de asignaturas.
+- El fondo de horizonte luminoso es una creación propia en `HorizonBackground.tsx` y `horizon.css`, autorizada tras descartar el componente con licencia. Es SVG en línea, sin imágenes ni animación continua; tiene paletas clara y oscura. El horizonte no forma parte de las físicas ni intercepta el puntero. Mantén planos los planetas de asignaturas.
+
+- La configuración visual posterior del propietario sitúa el horizonte a la derecha (tilt -90), con curva 4.04, posición .79, naranja #ff8a32 y violeta #6658ff. Autoriza estrellas discretas solo en oscuro (stars 1.73), grano de fondo generado con código y atmósfera más amplia. El fondo propio interpreta esos valores; no es una implementación del shader comercial. Reutiliza el parallax existente, sin deriva automática ni interacciones que capturen los clics del mapa.
