@@ -126,3 +126,9 @@ body { background: var(--space-background); }
  .immersive-shell .subject-panel-glass { max-height: 45dvh; }
  .immersive-shell .subject-panel-content { max-height: calc(45dvh - 2px); }
 }
+
+/* Frost the refracted backdrop so enlarged graph labels cannot compete with panel text. */
+.immersive-shell .subject-panel-glass.glass-surface--svg {
+ -webkit-backdrop-filter: blur(16px) var(--filter-id) saturate(1);
+ backdrop-filter: blur(16px) var(--filter-id) saturate(1);
+}
