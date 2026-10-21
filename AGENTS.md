@@ -22,7 +22,7 @@ Antes de trabajar, localiza este archivo, inspecciona `git remote -v`, la rama y
 
 ## Arquitectura y límites
 
-- Sigue la dirección visual del propietario conservada en `docs/visual-direction.md`: papel cálido, tinta, tipografía de sistema, rótulos monoespaciados, marcos rectangulares y controles legibles de al menos 44 px. El tema claro es la base; ambos temas deben estar completos. El color identifica asignaturas y estados; evita halos, brillos y adorno orbital. No alteres el diseño interno de las clases al retocar el portal.
+- La dirección vigente del hub está en `docs/immersive-direction.md`: universo a pantalla completa sin marco, controles de cristal flotantes, planetas con volumen y parallax relativo. Sustituye el marco editorial anterior descrito en `docs/visual-direction.md`. Conserva controles legibles de al menos 44 px y ambos temas completos. Evita órbitas y movimiento continuo. No alteres el diseño interno de las clases al retocar el portal.
 - Los once colores de asignatura fueron elegidos expresamente por el propietario y están en `subjects.json`; conserva sus tonos definidos, sin diluirlos con superficies neutras. Las abreviaturas usan tinta calculada con contraste mínimo 4.5:1 sobre su color. El control «Textos» junto al zoom oculta etiquetas y datos del grafo, nunca las abreviaturas, y recuerda la preferencia en el navegador.
 
 - React + TypeScript + Vite. Portal estático para GitHub Pages, sin servicios permanentes ni dependencias de pago.
@@ -41,3 +41,12 @@ Antes de trabajar, localiza este archivo, inspecciona `git remote -v`, la rama y
 - Al soltar, una simulación breve desplaza vecinos para resolver colisiones y se detiene. No devuelve los nodos a las coordenadas iniciales ni recentra la cámara. Guarda posiciones inmediatamente y al terminar; conserva también las ocultas por filtros. Alt + flechas ofrece una alternativa de teclado.
 - La guía contiene «Tamaño según número de clases», experimental, desactivada inicialmente y persistida localmente. Usa el total real de clases de cada asignatura, sin variar al filtrar: radio 39 + min(39, 4 × sqrt(clases)). Ajusta etiquetas, encuadre y colisiones al radio. No añadas clases ficticias para mostrar el efecto.
 - El control «Textos» debe mantenerse discreto, sin fondo sólido al estar activo.
+
+## Hub inmersivo
+
+- El mapa ocupa el viewport y los controles flotan encima. No restaures el hero ni el marco del diseño anterior.
+- `GlassSurface.jsx` y su CSS se copiaron exactamente del registro JS-CSS solicitado. No requieren dependencias. Conserva `THIRD_PARTY_NOTICES.md`; no añadas créditos ni enlaces promocionales a la interfaz.
+- `subjectDepths` usa rangos relativos del total de clases y una variación determinista por id. Crecer todas las asignaturas por igual no las acerca todas. No calcules profundidad con la cantidad absoluta ni solo con las clases filtradas.
+- El parallax modifica capas visuales y extremos de conexiones; no escribe posiciones físicas. Se detiene en reposo, se congela durante el arrastre y respeta movimiento reducido/punteros táctiles. No añadas un bucle continuo.
+- La proyección se ensancha en escritorio y se alarga en móvil sin cambiar las coordenadas guardadas. Compensa ambas escalas al arrastrar nodos. Las colisiones deben respetar el nuevo volumen de los planetas.
+- La textura local `public/assets/planet-mineral.webp` se reutiliza entre planetas; las abreviaturas mantienen tinta contrastada y un contorno del color base.

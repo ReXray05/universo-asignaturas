@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { zoomIdentity } from 'd3-zoom';
 import { attachMapGestures } from '../src/lib/mapGestures.ts';
 
-function harness() {
+function harness(horizontalScale = 1, verticalScale = 1) {
   const subject={key:'subject:a',id:'a',subjectId:'a',kind:'subject',x:100,y:100};
   const satellite={key:'lesson:b',id:'b',subjectId:'a',kind:'lesson',x:180,y:100};
   const neighbour={key:'subject:c',id:'c',subjectId:'c',kind:'subject',x:300,y:100};
@@ -19,7 +19,7 @@ function harness() {
   let transform=zoomIdentity.scale(2), armed=null, settled=null, saved=0;
   const dispose=attachMapGestures(svg,nodes,{width:800,height:600},{
     onStart(){},onHideTooltip(){},onArm:key=>armed=key,onMove(){},onSettle:key=>settled=key,onSave:()=>saved++,getTransform:()=>transform,onTransform:value=>transform=value,
-  });
+  }, horizontalScale, verticalScale);
   const pointer=(type,x,y,id=1)=>{
     const event=new Event(type,{cancelable:true});
     Object.assign(event,{button:0,clientX:x,clientY:y,pointerId:id});
@@ -66,4 +66,17 @@ test('normal click stays available; cancellation clears a hold and two pointers 
     assert.equal(h.state().transform.k,3);assert.equal(h.subject.x,100);
     h.pointer('pointerup',250,100,2);h.pointer('pointerup',100,100,1);
   } finally {h.dispose();}
+});
+
+
+test('planet drag compensates for the responsive horizontal projection', async () => {
+ const h=harness(2,2);
+ try {
+  h.pointer('pointerdown',100,100);
+  await new Promise(resolve=>setTimeout(resolve,350));
+  h.pointer('pointermove',160,140);h.pointer('pointerup',160,140);
+  assert.equal(h.subject.x,115);assert.equal(h.subject.y,110);
+  assert.equal(h.satellite.x,195);assert.equal(h.neighbour.x,300);
+  assert.equal(h.state().transform.x,0);
+ } finally {h.dispose();}
 });

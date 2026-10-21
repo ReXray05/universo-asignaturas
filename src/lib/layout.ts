@@ -39,7 +39,7 @@ export function planetRadius(count: number, enabled: boolean): number {
 }
 
 /** Brief, local relaxation around the user's arrangement; no return to seed coordinates. */
-export function relaxLayout(nodes: GraphNode[], links: GraphLink[], fixedKey?: string, minimumRadius = 0) {
+export function relaxLayout(nodes: GraphNode[], links: GraphLink[], fixedKey?: string, minimumRadius = 0, bodyScale = 1) {
   const anchors = new Map(nodes.map(node => [node.key, { x: node.x, y: node.y }]));
   for (const node of nodes) {
     node.fx = node.key === fixedKey ? node.x : null;
@@ -49,7 +49,7 @@ export function relaxLayout(nodes: GraphNode[], links: GraphLink[], fixedKey?: s
   return forceSimulation(nodes).alphaDecay(.065).velocityDecay(.48)
     .force('link', forceLink<GraphNode, GraphLink>(links.map(link => ({ ...link }))).id(node => node.key)
       .distance(link => Math.max(126, (link.source as unknown as GraphNode).radius + 80)).strength(.3))
-    .force('collision', forceCollide<GraphNode>().radius(node => node.kind === 'subject' ? Math.max(node.radius, minimumRadius * node.radius / 39) + 25 : Math.max(8, minimumRadius * .3125) + 7).iterations(5).strength(1))
+    .force('collision', forceCollide<GraphNode>().radius(node => node.kind === 'subject' ? Math.max(node.radius * bodyScale, minimumRadius * node.radius / 39) + 25 : Math.max(8, minimumRadius * .3125) + 7).iterations(5).strength(1))
     .force('charge', forceManyBody<GraphNode>().strength(node => node.kind === 'subject' ? -75 : -15).distanceMax(220))
     .force('x', forceX<GraphNode>(node => anchors.get(node.key)!.x).strength(node => node.kind === 'subject' ? .12 : .015))
     .force('y', forceY<GraphNode>(node => anchors.get(node.key)!.y).strength(node => node.kind === 'subject' ? .12 : .015));

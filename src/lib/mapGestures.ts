@@ -13,7 +13,7 @@ interface Callbacks {
 }
 
 /** Quick drag pans; holding a planet for 320 ms arms its independent drag. */
-export function attachMapGestures(svg: SVGSVGElement, nodes: GraphNode[], size: {width: number; height: number}, callbacks: Callbacks) {
+export function attachMapGestures(svg: SVGSVGElement, nodes: GraphNode[], size: {width: number; height: number}, callbacks: Callbacks, horizontalScale = 1, verticalScale = 1) {
     const nodeMap = new Map(nodes.map(node => [node.key, node]));
     let suppressClickUntil = 0;
     const pointers = new Map<number, { x: number; y: number }>();
@@ -71,7 +71,7 @@ export function attachMapGestures(svg: SVGSVGElement, nodes: GraphNode[], size: 
       pointers.set(event.pointerId, p);
       const current = callbacks.getTransform();
       if (gesture.mode === 'planet' && gesture.node) {
-        const dx = (p.x - old.x) / current.k, dy = (p.y - old.y) / current.k;
+        const dx = (p.x - old.x) / current.k / horizontalScale, dy = (p.y - old.y) / current.k / verticalScale;
         for (const node of nodes) if (node.subjectId === gesture.node.id) {
           node.x += dx; node.y += dy; node.fx = node.fy = null; node.vx = node.vy = 0;
         }

@@ -49,11 +49,11 @@ test('a relocated planet stays at its drop position, neighbours react and coordi
     const far={x:distant.x,y:distant.y};
     moved.x=neighbour.x+10; moved.y=neighbour.y+5;
     const drop={x:moved.x,y:moved.y};
-    const simulation=relaxLayout(nodes,links,moved.key).stop();
+    const simulation=relaxLayout(nodes,links,moved.key,0,1.85).stop();
     simulation.tick(150);
     assert.equal(moved.x,drop.x); assert.equal(moved.y,drop.y);
     assert.ok(Math.hypot(neighbour.x-before.x,neighbour.y-before.y)>20);
-    assert.ok(Math.hypot(neighbour.x-moved.x,neighbour.y-moved.y)>moved.radius+neighbour.radius);
+    assert.ok(Math.hypot(neighbour.x-moved.x,neighbour.y-moved.y)>(moved.radius+neighbour.radius)*1.85);
     assert.ok(Math.hypot(distant.x-far.x,distant.y-far.y)<8);
     assert.ok(simulation.alpha()<simulation.alphaMin(),'Physics reaches rest after a bounded relaxation');
     savePositions(nodes);

@@ -136,3 +136,7 @@ El portal funciona sin base de datos, cuentas, servicios de pago ni servidor per
 Arrastra directamente para mover la cámara. Para recolocar una asignatura, mantén pulsado su planeta unos 0,3 segundos y después arrastra; sus clases lo acompañan y los vecinos se acomodan al soltar. El mapa se estabiliza y guarda las posiciones en este navegador. También puedes enfocar un planeta con Tab y moverlo con Alt + las flechas.
 
 En **Guía**, activa **Tamaño según número de clases** para probar el crecimiento gradual de los planetas. Está desactivado inicialmente y recuerda tu elección. Usa el total de clases publicadas, aunque se esté filtrando el mapa. El botón **Textos**, junto al zoom, controla las etiquetas sin ocultar las abreviaturas.
+
+### Apariencia del universo
+
+El hub utiliza un lienzo a pantalla completa, superficies de cristal y profundidad suave al mover el ratón. La profundidad depende de la cantidad relativa de clases y conserva variación entre asignaturas; no desplaza las posiciones guardadas. El efecto se desactiva en pantallas táctiles y con la preferencia de movimiento reducido. Las clases se mantienen aisladas y conservan su diseño original.
