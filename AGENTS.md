@@ -22,7 +22,7 @@ Antes de trabajar, localiza este archivo, inspecciona `git remote -v`, la rama y
 
 ## Arquitectura y límites
 
-- La dirección vigente del hub está en `docs/immersive-direction.md`: universo a pantalla completa sin marco, controles de cristal flotantes, planetas con volumen y parallax relativo. Sustituye el marco editorial anterior descrito en `docs/visual-direction.md`. Conserva controles legibles de al menos 44 px y ambos temas completos. Evita órbitas y movimiento continuo. No alteres el diseño interno de las clases al retocar el portal.
+- La dirección vigente del hub está en `docs/immersive-direction.md`: universo a pantalla completa sin marco, controles y panel de asignatura de cristal, planetas planos en sus colores y parallax relativo. Sustituye el marco editorial anterior descrito en `docs/visual-direction.md`. Conserva controles legibles de al menos 44 px y ambos temas completos. Evita órbitas y movimiento continuo. No alteres el diseño interno de las clases al retocar el portal.
 - Los once colores de asignatura fueron elegidos expresamente por el propietario y están en `subjects.json`; conserva sus tonos definidos, sin diluirlos con superficies neutras. Las abreviaturas usan tinta calculada con contraste mínimo 4.5:1 sobre su color. El control «Textos» junto al zoom oculta etiquetas y datos del grafo, nunca las abreviaturas, y recuerda la preferencia en el navegador.
 
 - React + TypeScript + Vite. Portal estático para GitHub Pages, sin servicios permanentes ni dependencias de pago.
@@ -49,4 +49,4 @@ Antes de trabajar, localiza este archivo, inspecciona `git remote -v`, la rama y
 - `subjectDepths` usa rangos relativos del total de clases y una variación determinista por id. Crecer todas las asignaturas por igual no las acerca todas. No calcules profundidad con la cantidad absoluta ni solo con las clases filtradas.
 - El parallax modifica capas visuales y extremos de conexiones; no escribe posiciones físicas. Se detiene en reposo, se congela durante el arrastre y respeta movimiento reducido/punteros táctiles. No añadas un bucle continuo.
 - La proyección se ensancha en escritorio y se alarga en móvil sin cambiar las coordenadas guardadas. Compensa ambas escalas al arrastrar nodos. Las colisiones deben respetar el nuevo volumen de los planetas.
-- La textura local `public/assets/planet-mineral.webp` se reutiliza entre planetas; las abreviaturas mantienen tinta contrastada y un contorno del color base.
+- El hub se genera solo con código: sin archivos de imagen, texturas, iluminación/brillo en los planetas, sombras internas o proyectadas, planetas decorativos desenfocados ni estrellas. Conserva el parallax, los once colores y las abreviaturas contrastadas. El panel de asignatura usa el mismo componente GlassSurface que los controles y permite desplazar su contenido.

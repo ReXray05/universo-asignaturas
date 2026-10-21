@@ -21,8 +21,6 @@
 .universe-node.is-match .planet-focus-ring,.universe-node.is-match .lesson-focus-ring { opacity: 1; stroke-dasharray: 3 4; }
 .universe-node:focus-visible .planet-focus-ring,.universe-node:focus-visible .lesson-focus-ring { opacity: 1; stroke: var(--focus); stroke-width: 2; }
 .planet-body { stroke: var(--graph-line); vector-effect: non-scaling-stroke; }
-.planet-contour { stroke: var(--node-ink); opacity: .16; vector-effect: non-scaling-stroke; }
-.planet-contour.meridian { opacity: .1; }
 .planet-abbreviation { fill: var(--node-ink); font-family: var(--font-mono); font-weight: 500; letter-spacing: -.02em; paint-order: stroke; stroke: var(--node-color); stroke-width: 3px; stroke-linejoin: round; }
 .planet-name { fill: var(--graph-ink); font-family: var(--font-sans); font-weight: 450; letter-spacing: -.025em; }
 .planet-meta { fill: var(--graph-muted); font-family: var(--font-mono); font-weight: 400; letter-spacing: 0; }
@@ -40,33 +38,18 @@
 .universe-node.is-dragging { cursor: grabbing; }
 .universe-node.is-dragging .planet-focus-ring { opacity: 1; stroke-dasharray: 3 3; }
 
-/* Light, texture and depth stay separate from physical coordinates. */
+/* The background and visual depth remain separate from physical coordinates. */
 .immersive-shell .universe-graph { --graph-ink: #263047; --graph-muted: #5a6271; --graph-line: #919baa; background: #eeedf0; }
 [data-theme="dark"] .immersive-shell .universe-graph { --graph-ink: #e8edf8; --graph-muted: #b5bfd3; --graph-line: #677790; background: #0b101d; }
-.space-haze,.space-dust,.ambient-planets { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.space-haze { inset: -40px; background: radial-gradient(ellipse at 70% 22%,#fffdf0 0%,transparent 54%),radial-gradient(ellipse at 23% 70%,#cfdced77,transparent 60%),radial-gradient(ellipse at 93% 85%,#f4d6c666,transparent 35%); transform: translate(var(--pointer-x,0px),var(--pointer-y,0px)); }
+.space-haze { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.space-haze { position: absolute; inset: -40px; pointer-events: none; background: radial-gradient(ellipse at 70% 22%,#fffdf0 0%,transparent 54%),radial-gradient(ellipse at 23% 70%,#cfdced77,transparent 60%),radial-gradient(ellipse at 93% 85%,#f4d6c666,transparent 35%); transform: translate(var(--pointer-x,0px),var(--pointer-y,0px)); }
 [data-theme="dark"] .space-haze { background: radial-gradient(ellipse at 75% 25%,#25314a88,transparent 55%),radial-gradient(ellipse at 15% 75%,#1f334466,transparent 60%),radial-gradient(ellipse at 95% 85%,#3c244033,transparent 40%); }
-.space-dust { opacity: .58; background-image: radial-gradient(circle at 18px 25px,#ffffffb0 0 1px,transparent 2.5px),radial-gradient(circle at 71px 92px,#687a942e 0 1px,transparent 2px),radial-gradient(circle at 48px 148px,#fff9e4aa 0 .8px,transparent 2.8px); background-size: 173px 211px,137px 181px,257px 293px; transform: translate(calc(var(--pointer-x,0px) * -.5),calc(var(--pointer-y,0px) * -.5)); }
-[data-theme="dark"] .space-dust { opacity: .42; }
-.ambient-planets { filter: blur(10px); opacity: .62; transform: translate(calc(var(--pointer-x,0px) * -2),calc(var(--pointer-y,0px) * -2)); }
-.ambient-planets i { position: absolute; display: block; width: 290px; height: 290px; border-radius: 50%; background: var(--ambient); background-image: url('/assets/planet-mineral.webp'); background-blend-mode: soft-light; box-shadow: inset -65px -42px 75px #070e22b5,inset 9px 12px 25px #ffffffa0,0 0 45px #ffffff50; }
-.ambient-planets i:nth-child(1) { --ambient:#3288bd; left: -235px; top: 14%; width: 340px; height: 340px; }
-.ambient-planets i:nth-child(2) { --ambient:#66c2a5; left: 22%; bottom: -220px; }
-.ambient-planets i:nth-child(3) { --ambient:#d53e4f; right: -185px; bottom: -140px; width: 350px; height: 350px; }
-.ambient-planets i:nth-child(4) { --ambient:#5e4fa2; right: -240px; top: -170px; }
-[data-theme="dark"] .ambient-planets { opacity: .25; }
 .immersive-shell .universe-canvas { position: relative; z-index: 1; }
 .immersive-shell .planet-body { stroke: color-mix(in srgb,var(--node-color),white 20%); }
-.planet-texture { mix-blend-mode: soft-light; opacity: .58; pointer-events: none; }
-.planet-light,.planet-rim { pointer-events: none; }
-.planet-shadow { opacity: .15; filter: blur(7px); pointer-events: none; }
-[data-theme="dark"] .planet-shadow { opacity: .45; }
-.immersive-shell .planet-contour { display: none; }
 .immersive-shell .planet-abbreviation { font-family: var(--font-sans); font-weight: 550; letter-spacing: -.02em; stroke-width: 4px; }
 .immersive-shell .planet-name { font-size: 14px; font-weight: 450; paint-order: stroke; stroke: var(--space-background); stroke-width: 3px; stroke-linejoin: round; }
 .immersive-shell .planet-meta { opacity: .8; paint-order: stroke; stroke: var(--space-background); stroke-width: 2px; }
 .immersive-shell .universe-links line { stroke: var(--graph-line); }
 .immersive-shell .satellite-body { stroke: color-mix(in srgb,var(--node-color),white 40%); }
 .immersive-shell .satellite-center { display: none; }
-@media(max-width:850px) { .ambient-planets { opacity: .25; filter: blur(16px); } }
-@media(prefers-reduced-motion:reduce),(hover:none) { .space-haze,.space-dust,.ambient-planets { transform: none; } }
+@media(prefers-reduced-motion:reduce),(hover:none) { .space-haze { transform: none; } }

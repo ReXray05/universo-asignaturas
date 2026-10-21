@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, useId, type CSSProperties } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { select } from 'd3-selection';
 import { zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
 import type { Lesson, Subject } from '../types';
@@ -24,7 +24,6 @@ interface Props {
 }
 
 const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ subjects, lessons, selectedId, highlightedIds, showLabels, growPlanets, allLessons, allSubjects, onSelectSubject, onOpenLesson, onZoomChange }, ref) {
-  const sceneId = useId().replace(/:/g, '');
   const depths = useMemo(() => subjectDepths(allSubjects, allLessons), [allSubjects, allLessons]);
   const parallaxRef = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -303,8 +302,6 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
 
   return <div className="universe-graph" ref={containerRef}>
     <div className="space-haze" aria-hidden="true"/>
-    <div className="space-dust" aria-hidden="true"/>
-    <div className="ambient-planets" aria-hidden="true"><i/><i/><i/><i/></div>
     <svg ref={svgRef} className="universe-canvas" width={size.width} height={size.height} tabIndex={0} role="region" aria-label={`Mapa de ${subjects.length} asignaturas y ${lessons.length} clases. Arrastra o usa las flechas para desplazarte. Rueda, más y menos para ampliar. Inicio ajusta el universo.`}
       onKeyDown={event => {
         const directions: Record<string, [number, number]> = { ArrowLeft: [70, 0], ArrowRight: [-70, 0], ArrowUp: [0, 70], ArrowDown: [0, -70] };
@@ -317,15 +314,6 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
         else if (event.key === '-' || event.key === '−') { event.preventDefault(); zoomBy(0.8); }
         else if (event.key === 'Home') { event.preventDefault(); fit(); }
       }}>
-      <defs>
-        <radialGradient id={`${sceneId}-light`} cx="28%" cy="22%" r="80%">
-          <stop offset="0" stopColor="#fff" stopOpacity=".66"/><stop offset=".24" stopColor="#fff" stopOpacity=".13"/><stop offset=".52" stopColor="#fff" stopOpacity="0"/><stop offset=".82" stopColor="#0c1224" stopOpacity=".24"/><stop offset="1" stopColor="#050916" stopOpacity=".80"/>
-        </radialGradient>
-        <radialGradient id={`${sceneId}-rim`} cx="25%" cy="18%" r="85%">
-          <stop offset="0" stopColor="#fff" stopOpacity=".95"/><stop offset=".36" stopColor="#fff" stopOpacity=".15"/><stop offset=".7" stopColor="#fff" stopOpacity="0"/><stop offset="1" stopColor="#fff" stopOpacity=".2"/>
-        </radialGradient>
-        <pattern id={`${sceneId}-mineral`} width="1" height="1" patternContentUnits="objectBoundingBox"><image href={`${import.meta.env.BASE_URL}assets/planet-mineral.webp`} width="1" height="1" preserveAspectRatio="xMidYMid slice"/></pattern>
-      </defs>
       <g ref={layerRef}>
         <g className="universe-links" aria-hidden="true">
           {links.map(link => {
@@ -370,13 +358,7 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
             {isSubject ? <>
               <circle className="node-hit-area" r={Math.max(visualRadius + 17, 22 / zoomScale)} fill="transparent" />
               <circle className="planet-focus-ring" r={visualRadius + 7 / zoomScale} fill="none" strokeWidth="1" />
-              <ellipse className="planet-shadow" cx={visualRadius * .22} cy={visualRadius * 1.24} rx={visualRadius * .78} ry={visualRadius * .14} fill="#10182b"/>
               <circle className="planet-body" r={visualRadius} fill={node.subject.color} strokeWidth="1" />
-              <circle className="planet-texture" r={visualRadius - .5} fill={`url(#${sceneId}-mineral)`}/>
-              <circle className="planet-light" r={visualRadius} fill={`url(#${sceneId}-light)`}/>
-              <circle className="planet-rim" r={visualRadius - .5} fill="none" stroke={`url(#${sceneId}-rim)`} strokeWidth="2"/>
-              <ellipse className="planet-contour" rx={visualRadius * .95} ry={visualRadius * .34} transform="rotate(-28)" fill="none" strokeWidth="0.6" />
-              <ellipse className="planet-contour meridian" rx={visualRadius * .34} ry={visualRadius * .95} transform="rotate(-28)" fill="none" strokeWidth="0.6" />
               <text className="planet-abbreviation" style={{ fontSize: metrics.abbreviationFont }} textAnchor="middle" dominantBaseline="central">{node.subject.abbreviation}</text>
               {showName && <>
                 <text className="planet-name" style={{ fontSize: metrics.font }} textAnchor="middle" y={labelBaseline}>{lines.map((line, index) => <tspan key={index} x="0" dy={index ? metrics.lineHeight : 0}>{line}</tspan>)}</text>
@@ -385,8 +367,7 @@ const UniverseGraph = forwardRef<GraphHandle, Props>(function UniverseGraph({ su
             </> : <>
               <circle className="node-hit-area" r={Math.max(19, 22 / zoomScale)} fill="transparent" />
               <circle className="lesson-focus-ring" r={satelliteRadius + 5 / zoomScale} fill="none" />
-              <circle className="satellite-body" r={satelliteRadius} strokeWidth="1" /><circle r={satelliteRadius} fill={`url(#${sceneId}-light)`}/><circle r={satelliteRadius} fill={`url(#${sceneId}-mineral)`} className="planet-texture"/>
-              <circle r={satelliteRadius * .3} className="satellite-center" />
+              <circle className="satellite-body" r={satelliteRadius} strokeWidth="1" />
             </>}
             </g>
           </g>;

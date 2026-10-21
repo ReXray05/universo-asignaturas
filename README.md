@@ -140,3 +140,5 @@ En **Guía**, activa **Tamaño según número de clases** para probar el crecimi
 ### Apariencia del universo
 
 El hub utiliza un lienzo a pantalla completa, superficies de cristal y profundidad suave al mover el ratón. La profundidad depende de la cantidad relativa de clases y conserva variación entre asignaturas; no desplaza las posiciones guardadas. El efecto se desactiva en pantallas táctiles y con la preferencia de movimiento reducido. Las clases se mantienen aisladas y conservan su diseño original.
+
+El hub se dibuja solo con código, sin recursos de imagen. Los planetas usan colores planos, sin brillos ni sombras; el panel de asignatura comparte el cristal de los controles. El fondo no incluye estrellas ni planetas decorativos.
